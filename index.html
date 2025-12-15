@@ -3,47 +3,36 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Guirnalda interactiva — Luces y bonos</title>
+  <title>Guirnalda interactiva — Luces y bono único</title>
   <link rel="stylesheet" href="estilo.css" />
 </head>
 <body>
-  <main id="stage" class="stage" role="application" aria-label="Guirnalda interactiva con bonos">
+  <main id="stage" class="stage" role="application" aria-label="Guirnalda interactiva con bono único">
     <header class="hud">
       <div class="hud-left">
-        <h1>Guirnalda — Bonos sorpresa</h1>
-        <p class="hint">Haz clic en las luces para revelar bonos</p>
+        <h1>Guirnalda — Bono sorpresa</h1>
+        <p class="hint">Haz clic en UNA luz para revelar el bono</p>
       </div>
       <div class="hud-right">
         <div class="stats">
           <div>Puntuación: <span id="score">0</span></div>
-          <div>Intentos: <span id="attempts">0</span></div>
           <div>Ronda: <span id="round">0</span></div>
         </div>
         <div class="controls">
           <button id="startBtn" class="btn primary">Empezar</button>
-          <button id="nextBtn" class="btn" hidden>Siguiente</button>
           <button id="resetBtn" class="btn">Reiniciar</button>
         </div>
       </div>
     </header>
 
-    <!-- SVG de la guirnalda (edítalo para cambiar la forma) -->
     <div class="svg-wrapper">
       <svg id="garlandSVG" class="garland-svg" viewBox="0 0 1200 360" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-        <!-- cable principal -->
-        <path id="garlandPath" d="
-          M40,120
-          C180,40 320,200 460,120
-          C600,40 740,200 880,120
-          C980,60 1100,160 1160,120
-        " stroke="#111" stroke-width="6" fill="none" stroke-linecap="round" />
+        <path id="garlandPath" d="M40,120 C180,40 320,200 460,120 C600,40 740,200 880,120 C980,60 1100,160 1160,120" stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round"/>
       </svg>
 
-      <!-- contenedor donde se colocarán las bombillas (posicionadas por JS) -->
       <div id="lights" class="lights" role="list" aria-label="Luces de la guirnalda"></div>
     </div>
 
-    <!-- tooltip para mostrar bono -->
     <div id="tooltip" class="tooltip" role="status" aria-live="polite" hidden>
       <div class="tooltip-inner">
         <div id="tooltip-text" class="tooltip-text"></div>
@@ -51,19 +40,6 @@
       </div>
     </div>
 
-    <!-- modal resultado -->
-    <div id="resultModal" class="modal" hidden role="dialog" aria-modal="true">
-      <div class="modal-card">
-        <h2 id="result-title">Ronda terminada</h2>
-        <p id="result-body"></p>
-        <div class="modal-actions">
-          <button id="modal-next" class="btn primary">Siguiente ronda</button>
-          <button id="modal-reset" class="btn">Reiniciar</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- capa confetti -->
     <div id="confetti" class="confetti-layer" aria-hidden="true"></div>
   </main>
 
