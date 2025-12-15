@@ -1,84 +1,126 @@
 :root{
-  --bg:#f8fbff;
+  --bg:#f3f6fa;
   --string-color:#111;
-  --star-size:56px;
-  --accent:#ffcc00;
-  --card-bg:#ffffff;
-  --text:#111;
+  --bulb-size:72px;
+  --cap-height:12px;
+  --card-radius:12px;
 }
 
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;}
-body{background:linear-gradient(180deg,#f0f8ff 0%,var(--bg) 100%);display:flex;align-items:center;justify-content:center;padding:24px}
+html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;color:#111;background:var(--bg)}
+body{display:flex;align-items:center;justify-content:center;padding:20px}
 
-.stage{width:100%;max-width:960px;position:relative;height:420px;border-radius:12px;padding:24px;box-shadow:0 6px 30px rgba(10,20,40,0.08);background:transparent;overflow:hidden}
+.stage{width:100%;max-width:980px;height:420px;position:relative;overflow:hidden;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.6),rgba(250,252,255,0.95));box-shadow:0 10px 40px rgba(8,20,40,0.06);padding:24px}
 
-/* SVG wave sits near top */
-.wave{position:absolute;left:0;top:40px;width:100%;height:200px;pointer-events:none}
+/* SVG wave/Cuerda */
+.wave{position:absolute;left:0;top:40px;width:100%;height:220px;pointer-events:none;z-index:2}
 
-/* container for absolute positioned stars */
-.stars{position:absolute;left:0;right:0;top:0;height:100%;pointer-events:none}
+/* contenedor absoluto para bombillas */
+.lights{position:absolute;inset:0;pointer-events:none;z-index:5}
 
-/* base style for a star wrapper */
-.star{
+/* cada bombilla es un botón (accesible) */
+.bulb{
+  --color: #ffd54f;
   position:absolute;
-  width:var(--star-size);
-  height:var(--star-size);
-  margin-left:calc(var(--star-size)/-2);
-  margin-top:calc(var(--star-size)/-2);
-  transform-style:preserve-3d;
-  transition:transform 600ms cubic-bezier(.2,.9,.25,1), opacity 300ms;
-  pointer-events:auto; /* allow clicks */
+  width:var(--bulb-size);
+  height:var(--bulb-size);
+  margin-left:calc(var(--bulb-size)/-2);
+  margin-top:calc(var(--bulb-size)/-2 - 6px);
+  pointer-events:auto;
+  background:transparent;
+  border:0;
+  padding:0;
   cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   touch-action:manipulation;
+  outline: none;
 }
 
-/* the hanging connector: small vertical line */
-.star::before{
+/* el punto de sujeción (cap) y cable corto encima de la bombilla */
+.bulb::before{
   content:"";
   position:absolute;
+  top:-46px;
   left:50%;
-  top:-40px;
-  width:2px;
-  height:38px;
-  background:var(--string-color);
   transform:translateX(-50%);
-  border-radius:1px;
+  width:3px;
+  height:40px;
+  background:var(--string-color);
+  border-radius:2px;
+  z-index:6;
 }
 
-/* card faces for flip animation */
-.face{position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;backface-visibility:hidden;box-shadow:0 6px 18px rgba(10,20,40,0.08)}
-.front{background:radial-gradient(circle at 30% 20%, #fff7d4, var(--accent));color:#fff;font-size:28px}
-.back{background:linear-gradient(180deg,#fff,#ffeecd);transform:rotateY(180deg);color:var(--text);padding:6px;font-weight:700;}
+/* halo o glow circular detrás */
+.bulb .glow{
+  position:absolute;
+  width:110%;
+  height:110%;
+  border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, rgba(255,255,255,0.7), rgba(0,0,0,0) 55%), var(--glow-color, rgba(255,220,90,0.22));
+  filter: blur(6px);
+  z-index:3;
+  transform:translateY(2px);
+}
 
-/* Flip state */
-.star.revealed{pointer-events:none;transform:rotateX(20deg) scale(0.98)}
-.star.revealed .inner{transform:rotateY(180deg)}
+/* la forma de la bombilla (SVG) */
+.bulb .svg-wrap{
+  position:relative;
+  width:72%;
+  height:72%;
+  z-index:7;
+  transform:translateY(4px);
+}
 
-.inner{position:relative;width:100%;height:100%;border-radius:50%;transform-origin:center;transition:transform 600ms cubic-bezier(.2,.9,.25,1);transform-style:preserve-3d}
+/* capuchón pequeño */
+.bulb .cap{
+  position:absolute;
+  bottom:10px;
+  left:50%;
+  transform:translateX(-50%);
+  width:42%;
+  height:14%;
+  background:linear-gradient(180deg,#bdbdbd,#8f8f8f);
+  border-radius:4px;
+  z-index:8;
+  box-shadow:inset 0 -2px 3px rgba(0,0,0,0.15);
+}
 
-/* small star svg/icon */
-.star .icon{font-size:28px;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.15))}
+/* estado revelado: reducir opacidad y eliminar glow */
+.bulb.revealed{opacity:0.6;cursor:default}
+.bulb.revealed .glow{opacity:0.25;filter:blur(2px)}
 
-/* popup */
-.popup{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,6,23,0.35);backdrop-filter: blur(2px);z-index:40}
-.popup-card{width:min(92%,380px);padding:18px;border-radius:12px;background:var(--card-bg);box-shadow:0 18px 60px rgba(5,10,25,0.35);text-align:center;position:relative}
-.popup-content{font-size:28px;color:var(--text);font-weight:800;padding:8px}
-.close{position:absolute;right:10px;top:8px;border:0;background:transparent;font-size:18px;cursor:pointer}
+/* foco keyboard */
+.bulb:focus{box-shadow:0 0 0 4px rgba(34,150,243,0.12);border-radius:50%}
+
+/* tooltip emergente */
+.tooltip{
+  position:absolute;
+  z-index:40;
+  pointer-events:auto;
+}
+.tooltip-inner{
+  background:#fff;
+  padding:12px 18px;
+  border-radius:12px;
+  box-shadow:0 14px 40px rgba(8,20,40,0.16);
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:120px;
+  max-width:260px;
+}
+.tooltip-text{font-weight:800;font-size:18px;color:#111}
+.tooltip-close{margin-left:auto;background:transparent;border:0;font-size:16px;cursor:pointer}
 
 /* confetti */
 .confetti-layer{position:absolute;inset:0;pointer-events:none;z-index:30}
-.confetti{
-  position:absolute;width:10px;height:14px;opacity:0;transform:translateY(-10px) rotate(0deg);
-  animation:fall 1200ms forwards ease-out;
-}
-@keyframes fall{
-  0%{opacity:1;transform:translateY(-10px) rotate(0deg)}
-  100%{opacity:1;transform:translateY(180vh) rotate(540deg)}
-}
+.confetti{position:absolute;width:8px;height:12px;border-radius:2px;transform:translateY(-10px) rotate(0deg);animation:fall 1200ms forwards cubic-bezier(.2,.8,.25,1)}
+@keyframes fall{0%{opacity:1;transform:translateY(-10px) rotate(0deg)}100%{opacity:1;transform:translateY(160vh) rotate(540deg)}}
 
-/* small responsive tweaks */
+/* responsive */
 @media (max-width:520px){
-  :root{--star-size:48px}
+  :root{--bulb-size:56px}
   .stage{height:360px}
 }
