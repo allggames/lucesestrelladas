@@ -3,26 +3,29 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Guirnalda - aspecto ilustrado</title>
+<title>Guirnalda — Luces interactivas</title>
 <style>
   :root{
     --bg-dark: #053a2b;
     --string-color: #fff;
-    --bulb-size:72px;
+    --bulb-size:96px; /* Aumenté el tamaño de las bombillas */
     --font: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
   }
   *{box-sizing:border-box}
   html,body{height:100%;margin:0;font-family:var(--font);background:var(--bg-dark);color:#fff}
   body{display:flex;justify-content:center;padding:24px}
 
-  .stage{width:100%;max-width:1100px;position:relative;padding:12px}
+  .stage{width:100%;max-width:1200px;position:relative;padding:12px}
 
-  /* area SVG + overlay */
-  .svg-wrapper{position:relative;width:100%;height:260px}
+  /* HUD note */
+  .note{color:rgba(255,255,255,0.9);margin-bottom:8px}
+
+  /* wrapper que contiene SVG y overlay con luces */
+  .svg-wrapper{position:relative;width:100%;height:360px;overflow:visible}
   svg.garland{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:1}
   .lights{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:2}
 
-  /* cada bombilla es botón absoluto (sin rotar el contenedor) */
+  /* cada bombilla es botón absoluto (no ocupa flujo) */
   .bulb{
     position:absolute;
     width:var(--bulb-size);
@@ -30,66 +33,75 @@
     margin-left:calc(var(--bulb-size)/-2);
     margin-top:calc(var(--bulb-size)/-2);
     pointer-events:auto;
-    border:0;background:transparent;padding:0;cursor:pointer;
+    background:transparent;border:0;padding:0;cursor:pointer;
     display:flex;align-items:center;justify-content:center;
-    touch-action:manipulation;outline:none;
-    border-radius:50%;
+    touch-action:manipulation;outline:none;border-radius:50%;
     transition:transform .18s ease, opacity .18s ease;
   }
 
-  /* foco para accesibilidad */
-  .bulb:focus{box-shadow:0 0 0 6px rgba(255,255,255,0.08); border-radius:50%}
+  .bulb:focus{box-shadow:0 0 0 8px rgba(255,255,255,0.06);border-radius:50%}
 
-  /* "cable corto" encima de la bombilla */
   .bulb::before{
     content:"";
     position:absolute;
-    top:-44px;
+    top:-54px;
     left:50%;
     transform:translateX(-50%);
-    width:3px;height:36px;background:var(--string-color);border-radius:2px;z-index:6;
+    width:4px;height:46px;background:var(--string-color);border-radius:2px;z-index:6;
   }
 
-  /* glow y svg interior */
+  /* glow and art */
   .bulb .glow{
-    position:absolute;width:120%;height:120%;border-radius:50%;filter:blur(8px);z-index:1;transform:translateY(2px);transition:opacity .18s ease;
+    position:absolute;width:140%;height:140%;border-radius:50%;
+    filter:blur(14px);z-index:1;transform:translateY(6px);
+    transition:opacity .18s ease, transform .18s ease;
   }
   .bulb .art{ width:86%; height:86%; transform-origin:center; display:block; z-index:7; transition:transform .18s ease }
+  .bulb .cap{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:36%;height:12%;background:linear-gradient(180deg,#fff,#ddd);border-radius:4px;z-index:8}
 
-  .bulb .cap{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:38%;height:12%;background:linear-gradient(180deg,#fff,#ddd);border-radius:4px;z-index:8}
+  .bulb:hover{transform:translateY(-8px) scale(1.02)}
+  .bulb.revealed{opacity:1;pointer-events:none;transform:scale(1.06)}
+  .bulb.revealed .glow{opacity:0.6}
 
-  .bulb:hover{transform:translateY(-6px)}
-  .bulb.revealed{opacity:0.98;pointer-events:none;transform:scale(1.03)}
-  .bulb.revealed .glow{opacity:0.5}
+  /* modal centrado con animación */
+  .modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:80}
+  .modal-card{
+    width:360px;max-width:92%;padding:18px;border-radius:14px;background:#fff;color:#0b3b2c;text-align:center;
+    transform:translateY(8px) scale(.98);opacity:0;transition:transform .22s ease, opacity .22s ease;
+  }
+  .modal.show .modal-card{transform:translateY(0) scale(1);opacity:1}
+  .modal-title{margin:0;font-size:18px;color:#0b3b2c}
+  .modal-bonus{font-weight:900;font-size:22px;margin:14px 0;color:#084a33}
+  .modal-sub{color:#0b3b2c;margin:6px 0}
 
-  /* small HUD note */
-  .note{color:rgba(255,255,255,0.9);margin-bottom:8px}
-
-  /* modal */
-  .modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:60}
-  .modal-card{width:320px;padding:16px;border-radius:12px;background:#fff;color:#111;text-align:center}
-  .modal-bonus{font-weight:800;font-size:20px;margin-top:8px}
   .modal-actions{margin-top:12px}
-  .btn{background:#0b6b4a;color:#fff;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}
+  .btn{background:#0b6b4a;color:#fff;border:0;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:700}
 
   /* confetti */
-  .confetti-layer{position:fixed;inset:0;pointer-events:none;z-index:70}
+  .confetti-layer{position:fixed;inset:0;pointer-events:none;z-index:90}
   .confetti{position:absolute;width:8px;height:12px;border-radius:2px;animation:fall 1200ms forwards cubic-bezier(.2,.8,.25,1)}
   @keyframes fall{0%{opacity:1;transform:translateY(-10px) rotate(0deg)}100%{opacity:1;transform:translateY(160vh) rotate(540deg)}}
 
   /* responsive */
-  @media (max-width:720px){:root{--bulb-size:56px}.svg-wrapper{height:220px}}
+  @media (max-width:780px){
+    :root{--bulb-size:76px}
+    .svg-wrapper{height:320px}
+  }
+  @media (max-width:440px){
+    :root{--bulb-size:64px}
+    .svg-wrapper{height:280px}
+  }
 </style>
 </head>
 <body>
-  <main class="stage" role="main" aria-label="Guirnalda ilustrada">
+  <main class="stage" role="application" aria-label="Guirnalda interactiva">
     <div class="note">Guirnalda con bombillas colgando (colores arcoíris). Haz clic en UNA luz para revelar su bono.</div>
 
     <div class="svg-wrapper">
-      <svg class="garland" viewBox="0 0 1200 260" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <svg id="garlandSVG" class="garland" viewBox="0 0 1200 360" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
         <!-- cuerda/guirnalda -->
-        <path id="garlandPath" d="M20,40 C140,10 260,110 380,60 C500,10 620,110 740,60 C860,10 980,110 1180,60"
-              stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" />
+        <path id="garlandPath" d="M20,60 C160,10 300,220 440,120 C580,20 720,220 860,120 C980,50 1060,170 1180,120"
+              stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round" />
       </svg>
 
       <div id="lights" class="lights" role="list" aria-label="Luces"></div>
@@ -98,9 +110,10 @@
 
   <!-- modal para mostrar bono -->
   <div id="modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <div class="modal-card">
-      <h2 id="modal-title">¡Has revelado un bono!</h2>
-      <p id="modal-bonus" class="modal-bonus"></p>
+    <div class="modal-card" role="document">
+      <h2 id="modal-title" class="modal-title">¡Felicidades!</h2>
+      <p class="modal-sub">Te ganaste un bono de</p>
+      <p id="modal-bonus" class="modal-bonus">--</p>
       <div class="modal-actions">
         <button id="modal-ok" class="btn">Aceptar</button>
       </div>
@@ -110,7 +123,7 @@
   <div id="confetti" class="confetti-layer" aria-hidden="true"></div>
 
 <script>
-  // CONFIG: bonos + colores arcoíris (uno por bombilla)
+  // CONFIG: bonos y colores arcoíris
   const BONUS = [
     "150% de bono","100% de bono","200% de bono","50% de bono","250% de bono",
     "75% de bono","300% de bono","30% de bono","10% de bono"
@@ -119,10 +132,11 @@
   const BULB_COUNT = 9;
 
   // DOM
-  const svg = document.querySelector('svg.garland');
+  const svg = document.getElementById('garlandSVG');
   const path = document.getElementById('garlandPath');
   const lights = document.getElementById('lights');
   const modal = document.getElementById('modal');
+  const modalCard = modal.querySelector('.modal-card');
   const modalBonus = document.getElementById('modal-bonus');
   const modalOk = document.getElementById('modal-ok');
   const confettiLayer = document.getElementById('confetti');
@@ -137,7 +151,7 @@
     }
     return a;
   }
-  function hexToRgba(hex, a=0.22){
+  function hexToRgba(hex, a=0.28){
     const c = hex.replace('#','');
     const r = parseInt(c.substring(0,2),16);
     const g = parseInt(c.substring(2,4),16);
@@ -145,7 +159,7 @@
     return `rgba(${r},${g},${b},${a})`;
   }
 
-  // Crear bombillas y colocarlas sobre el path
+  // Crear bombillas
   function createBulbs(n){
     lights.innerHTML = '';
     for(let i=0;i<n;i++){
@@ -155,34 +169,20 @@
       btn.setAttribute('role','listitem');
       btn.tabIndex = 0;
 
-      // glow div
-      const glow = document.createElement('div');
-      glow.className = 'glow';
-      btn.appendChild(glow);
+      const glow = document.createElement('div'); glow.className = 'glow'; btn.appendChild(glow);
+      const art = document.createElement('div'); art.className = 'art'; art.innerHTML = bulbSVG(RAINBOW[i % RAINBOW.length]); btn.appendChild(art);
+      const cap = document.createElement('div'); cap.className = 'cap'; btn.appendChild(cap);
 
-      // art (svg interno)
-      const art = document.createElement('div');
-      art.className = 'art';
-      art.innerHTML = bulbSVG(RAINBOW[i % RAINBOW.length]);
-      btn.appendChild(art);
-
-      // capuchón (decorativo)
-      const cap = document.createElement('div');
-      cap.className = 'cap';
-      btn.appendChild(cap);
-
-      // eventos (click + teclado)
       btn.addEventListener('pointerdown', onBulbClick);
-      btn.addEventListener('keydown', (e) => { if(e.key === 'Enter' || e.key === ' ') onBulbClick({ currentTarget: btn }); });
+      btn.addEventListener('keydown', (e) => { if(e.key==='Enter' || e.key===' ') onBulbClick({ currentTarget: btn }); });
 
       lights.appendChild(btn);
     }
-    // posicionar después de insertarlas
     positionBulbs();
     window.addEventListener('resize', positionBulbs);
   }
 
-  // Asigna bonos (aleatorio, sin repetición en la tanda)
+  // Asignar bonos únicos
   function assignBonuses(){
     const picks = shuffle(BONUS).slice(0, BULB_COUNT);
     const bulbs = document.querySelectorAll('.bulb');
@@ -190,8 +190,8 @@
       const pick = picks[i] || BONUS[i % BONUS.length];
       const color = RAINBOW[i % RAINBOW.length];
       b.dataset.bonus = pick;
-      b.dataset.value = (/\d+/.exec(pick) || [0])[0]; // valor numérico (opcional)
-      b.querySelector('.glow').style.background = hexToRgba(color, 0.22);
+      b.dataset.value = (/\d+/.exec(pick) || [0])[0];
+      b.querySelector('.glow').style.background = hexToRgba(color, 0.32);
       b.querySelector('.art').innerHTML = bulbSVG(color);
       b.classList.remove('revealed');
       b.disabled = false;
@@ -199,7 +199,7 @@
     chosen = false;
   }
 
-  // Posicionar bombillas siguiendo el path y colgando debajo con offset normal
+  // Posicionar sobre el path (colgando debajo)
   function positionBulbs(){
     const nodes = Array.from(document.querySelectorAll('.bulb'));
     if(!path || !svg || nodes.length === 0) return;
@@ -214,15 +214,14 @@
       const t = (idx + 1) / (nodes.length + 1);
       const point = path.getPointAtLength(t * L);
 
-      // aproximar tangente para obtener normal
       const delta = Math.max(1, L * 0.002);
       const p1 = path.getPointAtLength(Math.max(0, t*L - delta));
       const p2 = path.getPointAtLength(Math.min(L, t*L + delta));
       const dx = p2.x - p1.x, dy = p2.y - p1.y;
       const len = Math.hypot(dx, dy) || 1;
-      const nx = -dy / len, ny = dx / len; // normal
+      const nx = -dy / len, ny = dx / len;
 
-      const offset = 20; // píxeles debajo de la cuerda
+      const offset = Math.max( (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--bulb-size')) || 96) * 0.22, 20);
       const screenX = svgRect.left + point.x * scaleX + nx * offset;
       const screenY = svgRect.top  + point.y * scaleY + ny * offset;
 
@@ -230,14 +229,13 @@
       el.style.left = (screenX - containerRect.left) + 'px';
       el.style.top  = (screenY - containerRect.top) + 'px';
 
-      // rotar solo el arte interno para seguir la tangente visualmente
       const angle = Math.atan2(dy, dx) * 180 / Math.PI;
       const art = el.querySelector('.art');
-      if(art) art.style.transform = `translateY(4px) rotate(${-angle}deg)`;
+      if(art) art.style.transform = `translateY(6px) rotate(${-angle}deg)`;
     });
   }
 
-  // Al pulsar una bombilla: revelar bono, deshabilitar el resto (solo UNA seleccion)
+  // Al elegir una bombilla: mostrar modal y deshabilitar las otras (solo UNA)
   function onBulbClick(e){
     if(chosen) return;
     const btn = e.currentTarget;
@@ -246,65 +244,69 @@
     btn.classList.add('revealed');
     btn.disabled = true;
 
-    // deshabilitar las demás
     document.querySelectorAll('.bulb').forEach(b => { if(b !== btn) b.disabled = true; });
 
     const bonus = btn.dataset.bonus || '¡Sorpresa!';
     chosen = true;
 
-    // mostrar modal con bono
+    // Mostrar modal con texto claro
     modalBonus.textContent = bonus;
     modal.hidden = false;
+    modal.classList.add('show');
+    modalCard.focus?.();
 
-    // confetti
+    // confetti centrado en la bombilla
     createConfettiAtElement(btn);
   }
 
-  // Confetti sencillo alrededor de la bombilla
+  // Confetti
   function createConfettiAtElement(el){
     const rect = el.getBoundingClientRect();
     const cx = rect.left + rect.width/2;
     const cy = rect.top + rect.height/2;
     const colors = ['#ff3b30','#ff9500','#ffcc00','#34c759','#5ac8fa','#5856d6','#ff2d55'];
-    for(let i=0;i<22;i++){
+    for(let i=0;i<28;i++){
       const p = document.createElement('div');
       p.className = 'confetti';
-      p.style.left = (cx + (Math.random()-0.5)*120) + 'px';
-      p.style.top = (cy + (Math.random()-0.5)*80) + 'px';
+      p.style.left = (cx + (Math.random()-0.5)*140) + 'px';
+      p.style.top = (cy + (Math.random()-0.5)*100) + 'px';
       p.style.background = colors[Math.floor(Math.random()*colors.length)];
-      p.style.width = (6 + Math.random()*8) + 'px';
-      p.style.height = (8 + Math.random()*10) + 'px';
+      p.style.width = (6 + Math.random()*10) + 'px';
+      p.style.height = (8 + Math.random()*12) + 'px';
       p.style.borderRadius = (Math.random()>0.5 ? '2px' : '50%');
       p.style.animationDelay = (Math.random()*200) + 'ms';
       confettiLayer.appendChild(p);
-      setTimeout(()=> p.remove(), 1400 + Math.random()*600);
+      setTimeout(()=> p.remove(), 1600 + Math.random()*800);
     }
   }
 
-  // Art SVG de la bombilla: cap + círculo + brillo
+  // Modal OK
+  modalOk.addEventListener('click', () => { modal.hidden = true; modal.classList.remove('show'); });
+
+  // SVG art for bulb
   function bulbSVG(color){
     return `
       <svg class="inner" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-        <rect x="22" y="4" rx="6" ry="6" width="20" height="10" fill="#fff" stroke="#111" stroke-width="2"/>
-        <path d="M32 8 C34 8 36 10 36 12" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round"/>
-        <circle cx="32" cy="36" r="16" fill="${color}" stroke="#111" stroke-width="3" />
-        <path d="M42 28 C40 24 34 22 30 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round"/>
+        <rect x="20" y="4" rx="6" ry="6" width="24" height="12" fill="#fff" stroke="#111" stroke-width="2"/>
+        <path d="M32 10 C34 10 36 12 36 14" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="32" cy="38" r="18" fill="${color}" stroke="#111" stroke-width="3" />
+        <path d="M45 29 C42 24 36 22 32 25" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2" stroke-linecap="round"/>
       </svg>
     `;
   }
 
-  // Botón modal OK
-  modalOk.addEventListener('click', () => { modal.hidden = true; });
-
-  // Inicializar
+  // Init
   createBulbs(BULB_COUNT);
   assignBonuses();
   positionBulbs();
   window.addEventListener('resize', positionBulbs);
 
-  // Si quieres reiniciar la tanda (volver a habilitar y reasignar), llama a:
-  // assignBonuses();
-  // createBulbs(BULB_COUNT);
+  // helper to re-run a tanda (si necesitas reiniciar manualmente en consola)
+  window.resetTanda = function(){
+    assignBonuses();
+    createBulbs(BULB_COUNT);
+    positionBulbs();
+  };
 </script>
 </body>
 </html>
