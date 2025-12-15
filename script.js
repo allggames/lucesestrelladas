@@ -1,6 +1,5 @@
-// script.js — una elección por dispositivo por día (localStorage)
-// + capa decorativa de árboles 🎄 aleatorios en el fondo
-// Ajuste: mayor cantidad de árboles en el fondo.
+// script.js — adaptado para móvil: menos árboles, menos confetti, sin animaciones pesadas en pantallas pequeñas
+// Mantiene: bloqueo diario, bonos ponderados (100/150/200), guirnalda y posicionamiento.
 
 document.addEventListener('DOMContentLoaded', () => {
   try {
@@ -77,7 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
-    // weighted pick
     function weightedPick(bonuses) {
       let sum = 0;
       const cumulative = bonuses.map(b => {
@@ -91,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return cumulative[cumulative.length - 1].label;
     }
 
-    // bulbs
+    // ---------- bulbs ----------
     function createBulbs(n){
       lights.innerHTML = '';
       for(let i=0;i<n;i++){
@@ -153,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const nx = -dy / len, ny = dx / len;
 
         const cssBulb = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bulb-size')) || 96;
-        const offset = Math.max(cssBulb * 0.22, 20);
+        const offset = Math.max(cssBulb * 0.22, 18); // smaller offset for mobile
 
         const screenX = svgRect.left + point.x * scaleX + nx * offset;
         const screenY = svgRect.top  + point.y * scaleY + ny * offset;
@@ -168,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // selection
+    // ---------- selection ----------
     function onBulbClick(e){
       if(hasChosenToday()){
         const stored = getStoredChoice();
@@ -204,36 +202,42 @@ document.addEventListener('DOMContentLoaded', () => {
       modal.setAttribute('aria-hidden','false');
     }
 
-    // confetti
+    // ---------- confetti (más ligero en móvil) ----------
     function createConfettiAtElement(el){
       const rect = el.getBoundingClientRect();
       const cx = rect.left + rect.width/2;
       const cy = rect.top + rect.height/2;
       const colors = ['#ff3b30','#ff9500','#ffcc00','#34c759','#5ac8fa','#5856d6','#ff2d55'];
-      for(let i=0;i<28;i++){
+
+      const isMobile = (window.innerWidth || document.documentElement.clientWidth) < 520;
+      const count = isMobile ? 10 : 28;
+
+      for(let i=0;i<count;i++){
         const p = document.createElement('div');
         p.className = 'confetti';
-        p.style.left = (cx + (Math.random()-0.5)*140) + 'px';
-        p.style.top = (cy + (Math.random()-0.5)*100) + 'px';
+        p.style.left = (cx + (Math.random()-0.5)*(isMobile?80:140)) + 'px';
+        p.style.top = (cy + (Math.random()-0.5)*(isMobile?40:100)) + 'px';
         p.style.background = colors[Math.floor(Math.random()*colors.length)];
-        p.style.width = (6 + Math.random()*10) + 'px';
-        p.style.height = (8 + Math.random()*12) + 'px';
-        p.style.borderRadius = (Math.random()>0.5 ? '2px' : '50%');
+        p.style.width = (4 + Math.random()*8) + 'px';
+        p.style.height = (6 + Math.random()*10) + 'px';
+        p.style.borderRadius = (Math.random()>0.6 ? '2px' : '50%');
         p.style.animationDelay = (Math.random()*200) + 'ms';
         confettiLayer.appendChild(p);
-        setTimeout(()=> p.remove(), 1600 + Math.random()*800);
+        setTimeout(()=> p.remove(), 1100 + Math.random()*600);
       }
     }
 
-    // trees — increase density
+    // ---------- trees (density & mobile behavior) ----------
     function createTrees(count = 40){
       if(!treesLayer) return;
       treesLayer.innerHTML = '';
+      const vw = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+      const isVerySmall = vw <= 420;
       for(let i=0;i<count;i++){
         const el = document.createElement('div');
-        el.className = 'tree animate';
+        el.className = 'tree';
         el.textContent = '🎄';
-        const size = Math.floor(12 + Math.random()*48);
+        const size = Math.floor((isVerySmall ? 10 : 14) + Math.random()* (isVerySmall ? 28 : 50));
         el.style.fontSize = size + 'px';
         const left = Math.random()*100;
         const top = Math.random()*100;
@@ -241,16 +245,19 @@ document.addEventListener('DOMContentLoaded', () => {
         el.style.top = top + '%';
         const rot = (Math.random()*40 - 20).toFixed(1) + 'deg';
         el.style.setProperty('--rot', rot);
-        el.style.opacity = (0.35 + Math.random()*0.6).toFixed(2);
+        el.style.opacity = (isVerySmall ? (0.25 + Math.random()*0.5) : (0.35 + Math.random()*0.6)).toFixed(2);
         if(size > 36) el.style.filter = 'drop-shadow(0 10px 12px rgba(0,0,0,0.45))';
+        // animate only on larger viewports
+        if(!isVerySmall) el.classList.add('animate');
         treesLayer.appendChild(el);
       }
     }
+
     let treesResizeTimer = null;
     function refreshTrees(){
       const vw = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
-      // aumenté los valores para mayor densidad
-      const base = vw > 1400 ? 90 : vw > 1200 ? 70 : vw > 900 ? 50 : vw > 600 ? 36 : 22;
+      // tuned for mobile: fewer trees in smaller screens
+      const base = vw > 1400 ? 90 : vw > 1200 ? 70 : vw > 900 ? 50 : vw > 600 ? 32 : 14;
       createTrees(base);
     }
     window.addEventListener('resize', () => {
@@ -282,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
       positionBulbs();
     }
 
-    console.log('Guirnalda inicializada con bloqueo diario y mayor densidad de árboles.');
+    console.log('Guirnalda inicializada (responsive).');
   } catch (err) {
     console.error('Error inicializando guirnalda:', err);
   }
