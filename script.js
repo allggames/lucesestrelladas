@@ -1,5 +1,5 @@
-// script.js — overlay buttons (HTML en #lights) SIN palitos ni piezas blancas.
-// Mantiene: posicionamiento robusto, glow, bonos ponderados y bloqueo diario.
+// script.js — versión overlay (botones HTML en #lights) con posicionamiento robusto.
+// Restaura el aspecto de la luz (sin rectángulos blancos) y asegura que los botones sean clicables.
 
 document.addEventListener('DOMContentLoaded', () => {
   try {
@@ -29,10 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // eliminar hangers antiguos si quedaron
-    svg.querySelectorAll('line.hanger').forEach(n => n.remove());
-    // eliminar posibles foreignObject residuales
-    svg.querySelectorAll('foreignObject, g.bulb-svg').forEach(n => n.remove());
+    // Cleanup possible leftover SVG groups/lines from previous scripts
+    (svg.querySelectorAll('g.bulb-svg, foreignObject, line.hanger') || []).forEach(n => n.remove());
 
     // ---------- helpers ----------
     const todayStr = () => {
@@ -71,19 +69,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const b = parseInt(c.substring(4,6),16);
       return `rgba(${r},${g},${b},${a})`;
     }
-
-    // NOTE: he eliminado el rect blanco superior para que no aparezca la "tapa" blanca
     function bulbSVG(color){
       return `
         <svg class="inner" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-          <!-- rect blanco original eliminado -->
+          <rect x="20" y="4" rx="6" ry="6" width="24" height="12" fill="#fff" stroke="#111" stroke-width="2"/>
           <path d="M32 10 C34 10 36 12 36 14" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round"/>
           <circle cx="32" cy="38" r="18" fill="${color}" stroke="#111" stroke-width="3" />
           <path d="M45 29 C42 24 36 22 32 25" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2" stroke-linecap="round"/>
         </svg>
       `;
     }
-
     function weightedPick(bonuses) {
       let sum = 0;
       const cumulative = bonuses.map(b => { sum += b.weight; return { label: b.label, cum: sum }; });
@@ -94,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return cumulative[cumulative.length - 1].label;
     }
 
-    // ---------- create / assign bulbs (HTML overlay, SIN .cap) ----------
+    // ---------- create / assign bulbs (HTML overlay) ----------
     function createBulbs(n){
       lights.innerHTML = '';
       for(let i=0;i<n;i++){
@@ -106,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const glow = document.createElement('div'); glow.className = 'glow'; btn.appendChild(glow);
         const art = document.createElement('div'); art.className = 'art'; art.innerHTML = bulbSVG(RAINBOW[i % RAINBOW.length]); btn.appendChild(art);
-        // <-- se elimina la creación del elemento '.cap' para no mostrar la pieza blanca inferior
+        const cap = document.createElement('div'); cap.className = 'cap'; btn.appendChild(cap);
 
         btn.addEventListener('click', onBulbClick);
         btn.addEventListener('keydown', (e) => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onBulbClick({ currentTarget: btn }); } });
@@ -115,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       assignBonuses();
       positionBulbsDeferred();
-
+      // ensure resize recalculation
       window.removeEventListener('resize', positionBulbsDeferred);
       window.addEventListener('resize', positionBulbsDeferred);
       window.removeEventListener('orientationchange', positionBulbsDeferred);
@@ -146,6 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const svgRect = svg.getBoundingClientRect();
       const vb = svg.viewBox.baseVal;
       const containerRect = lights.getBoundingClientRect();
+      // preferred: use getScreenCTM + createSVGPoint for robust mapping
       let ctm = null;
       try { ctm = svg.getScreenCTM(); } catch(e){ ctm = null; }
       const hasCTM = !!ctm && typeof svg.createSVGPoint === 'function';
@@ -164,6 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
           try { screenPoint = pt.matrixTransform(ctm); } catch(e){ screenPoint = null; }
 
           if(screenPoint){
+            // compute tangent in screen space for normal direction
             const delta = Math.max(1, L * 0.002);
             const p1 = path.getPointAtLength(Math.max(0, t*L - delta));
             const p2 = path.getPointAtLength(Math.min(L, t*L + delta));
@@ -173,12 +170,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const len = Math.hypot(dx, dy) || 1;
             const nx = -dy / len, ny = dx / len;
 
+            // target screen coords offset along normal
             const screenX = screenPoint.x + nx * offsetPx;
             const screenY = screenPoint.y + ny * offsetPx;
 
+            // place button relative to lights container
             el.style.left = (screenX - containerRect.left) + 'px';
             el.style.top  = (screenY - containerRect.top) + 'px';
 
+            // rotate art based on SVG tangent (angle in SVG user units)
             const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
             const art = el.querySelector('.art');
             if(art) art.style.transform = `translateY(6px) rotate(${-angle}deg)`;
@@ -186,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }
 
-        // fallback
+        // fallback: scale using viewBox -> bounding rect
         const scaleX = svgRect.width / (vb.width || svgRect.width);
         const scaleY = svgRect.height / (vb.height || svgRect.height);
 
@@ -297,7 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', ()=>{ clearTimeout(treesResizeTimer); treesResizeTimer = setTimeout(()=>{ refreshTrees(); positionBulbsDeferred(); }, 220); });
     window.addEventListener('orientationchange', ()=>{ setTimeout(()=>{ refreshTrees(); positionBulbsDeferred(); }, 240); });
 
-    // modal
+    // modal handler
     modalOk.addEventListener('click', () => {
       modal.classList.remove('show');
       modal.setAttribute('aria-hidden','true');
@@ -323,8 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
       showStoredModal(stored.bonus);
     }
 
-    console.log('Guirnalda inicializada (sin palitos ni piezas blancas).');
-
+    console.log('Guirnalda inicializada (overlay bulbs, luces restauradas).');
   } catch (err) {
     console.error('Error inicializando guirnalda:', err);
   }
