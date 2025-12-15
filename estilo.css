@@ -7,7 +7,7 @@
 
 /* Reset / base */
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;font-family:var(--font);background:linear-gradient(180deg,#053a2b 0%, #072f25 50%, #03241e 100%);color:#fff}
+html,body{height:100%;margin:0;font-family:var(--font);background:linear-gradient(180deg,#6c0f14 0%, #7b1220 45%, #3a0710 100%);color:#fff}
 body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px;overflow-x:hidden}
 
 /* Capa de árboles (fondo decorativo) */
