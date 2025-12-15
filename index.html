@@ -1,22 +1,19 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Guirnalda — Luces interactivas</title>
-<link rel="stylesheet" href="estilo.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ARCOIRIS DE LUCES</title>
+  <link rel="stylesheet" href="estilo.css" />
 </head>
 <body>
   <main class="stage" role="application" aria-label="Guirnalda interactiva">
-    <div class="topbar">
-      <div>
-        <div class="title">Guirnalda — Bonos sorpresa</div>
-        <div style="font-size:13px;color:rgba(255,255,255,0.85)">Haz clic en UNA luz para revelar su bono</div>
-      </div>
-      <!-- botón Reiniciar eliminado intencionalmente -->
-    </div>
+    <header class="topbar" role="banner">
+      <h1 class="title">ARCOIRIS DE LUCES</h1>
+      <p class="subtitle">CUAL SERÁ TU BONO DE LUZ?</p>
+    </header>
 
-    <div class="svg-wrapper">
+    <div class="svg-wrapper" aria-hidden="false">
       <svg id="garlandSVG" class="garland" viewBox="0 0 1200 360" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
         <path id="garlandPath" d="M20,60 C160,10 300,220 440,120 C580,20 720,220 860,120 C980,50 1060,170 1180,120"
               stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round" />
@@ -40,7 +37,6 @@
 
   <div id="confetti" class="confetti-layer" aria-hidden="true"></div>
 
-  <!-- enlazamos el script separado -->
   <script src="script.js" defer></script>
 </body>
 </html>
