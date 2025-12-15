@@ -1,6 +1,8 @@
+// script.js - Guirnalda con bloqueo "una elección por dispositivo por día"
 document.addEventListener('DOMContentLoaded', () => {
   try {
     // CONFIG
+    const STORAGE_KEY = 'guirnalda.choice.v1';
     const BONUS = [
       "150% de bono","100% de bono","200% de bono","50% de bono","250% de bono",
       "75% de bono","300% de bono","30% de bono","10% de bono"
@@ -23,7 +25,30 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    let chosen = false;
+    // Helpers
+    const todayStr = () => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    };
+
+    function getStoredChoice(){
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(!raw) return null;
+        return JSON.parse(raw);
+      } catch(e){
+        console.warn('Error parseando storage', e);
+        return null;
+      }
+    }
+    function setStoredChoice(bonus){
+      const item = { bonus, date: todayStr(), ts: Date.now() };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(item));
+    }
+    function hasChosenToday(){
+      const st = getStoredChoice();
+      return st && st.date === todayStr();
+    }
 
     function shuffle(arr){
       const a = arr.slice();
@@ -66,7 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const art = document.createElement('div'); art.className = 'art'; art.innerHTML = bulbSVG(RAINBOW[i % RAINBOW.length]); btn.appendChild(art);
         const cap = document.createElement('div'); cap.className = 'cap'; btn.appendChild(cap);
 
-        // click and keyboard support
         btn.addEventListener('click', onBulbClick);
         btn.addEventListener('keydown', (e) => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onBulbClick({ currentTarget: btn }); } });
 
@@ -85,12 +109,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const pick = picks[i] || BONUS[i % BONUS.length];
         const color = RAINBOW[i % RAINBOW.length];
         b.dataset.bonus = pick;
-        b.querySelector('.glow').style.background = hexToRgba(color, 0.36);
-        b.querySelector('.art').innerHTML = bulbSVG(color);
+        const glow = b.querySelector('.glow');
+        if(glow) glow.style.background = hexToRgba(color, 0.36);
+        const art = b.querySelector('.art');
+        if(art) art.innerHTML = bulbSVG(color);
         b.classList.remove('revealed');
         b.disabled = false;
       });
-      chosen = false;
       console.log('Bonos asignados:', picks);
     }
 
@@ -132,12 +157,25 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // Click handler
+    // Disable all bulbs (used after stored choice)
+    function disableAllBulbs(){
+      document.querySelectorAll('.bulb').forEach(b => {
+        b.disabled = true;
+      });
+    }
+
+    // When user clicks a bulb
     function onBulbClick(e){
-      if(chosen) {
-        console.log('Ya se eligió una bombilla esta tanda.');
+      // If already chosen today, block
+      if(hasChosenToday()) {
+        const stored = getStoredChoice();
+        if(stored) {
+          showStoredModal(stored.bonus, true);
+        }
         return;
       }
+
+      // Normal selection path
       const btn = e.currentTarget;
       if(!btn || btn.classList.contains('revealed')) return;
 
@@ -146,19 +184,37 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.bulb').forEach(b => { if(b !== btn) b.disabled = true; });
 
       const bonus = btn.dataset.bonus || '¡Sorpresa!';
-      chosen = true;
+      // store selection for today
+      setStoredChoice(bonus);
 
+      // show modal
+      showModalWith(bonus);
+
+      // confetti
+      createConfettiAtElement(btn);
+      console.log('Bombilla elegida y almacenada:', bonus);
+    }
+
+    function showModalWith(bonus){
       modalBonus.textContent = bonus;
       modal.classList.add('show');
       modal.setAttribute('aria-hidden','false');
       modal.querySelector('.modal-card')?.focus?.();
-
-      createConfettiAtElement(btn);
-
-      console.log('Bombilla elegida:', bonus);
     }
 
-    // confetti
+    function showStoredModal(bonus, already=true){
+      // slightly different message could be shown; for now show same modal
+      modalBonus.textContent = bonus;
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden','false');
+      // optionally update title/subtext to indicate it's stored
+      const title = modal.querySelector('.modal-title');
+      const sub = modal.querySelector('.modal-sub');
+      if(title) title.textContent = already ? 'Ya elegiste hoy' : '¡Felicidades!';
+      if(sub) sub.textContent = already ? 'No puedes elegir otra hasta mañana. Tu bono fue:' : 'Te ganaste un bono de';
+    }
+
+    // confetti effect
     function createConfettiAtElement(el){
       const rect = el.getBoundingClientRect();
       const cx = rect.left + rect.width/2;
@@ -179,27 +235,82 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // modal and reset
+    // Modal and reset behavior
     modalOk.addEventListener('click', () => {
       modal.classList.remove('show');
       modal.setAttribute('aria-hidden','true');
+      // restore modal title/subtext default (in case changed)
+      const title = modal.querySelector('.modal-title');
+      const sub = modal.querySelector('.modal-sub');
+      if(title) title.textContent = '¡Felicidades!';
+      if(sub) sub.textContent = 'Te ganaste un bono de';
     });
 
     resetBtn.addEventListener('click', () => {
+      if(hasChosenToday()){
+        // If user already chose today, don't allow reset to bypass restriction
+        const stored = getStoredChoice();
+        if(stored){
+          showStoredModal(stored.bonus, true);
+          return;
+        }
+      }
+      // fresh tanda (allowed only if not chosen today)
       createBulbs(BULB_COUNT);
       assignBonuses();
       positionBulbs();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    // init
+    // --- Storage helpers (localStorage) ---
+    function getStoredChoice(){
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(!raw) return null;
+        return JSON.parse(raw);
+      } catch(e){
+        console.warn('Error parseando storage', e);
+        return null;
+      }
+    }
+    function setStoredChoice(bonus){
+      try {
+        const item = { bonus, date: todayStr(), ts: Date.now() };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(item));
+      } catch(e){
+        console.warn('No se pudo guardar elección en localStorage:', e);
+      }
+    }
+
+    // On init: create UI and restore if chosen today
     createBulbs(BULB_COUNT);
     assignBonuses();
-    positionBulbs();
 
-    window.resetTanda = () => { createBulbs(BULB_COUNT); assignBonuses(); positionBulbs(); };
+    // If the user already chose today, disable and show the stored info
+    const stored = getStoredChoice();
+    if(stored && stored.date === todayStr()){
+      // mark chosen and disable bulbs
+      document.querySelectorAll('.bulb').forEach(b => b.disabled = true);
+      chosen = true;
+      // show modal informing the stored bonus
+      showStoredModal(stored.bonus, true);
+    } else {
+      // normal: position bulbs and let user choose
+      positionBulbs();
+    }
 
-    console.log('Guirnalda inicializada.');
+    // expose reset helper for dev (won't bypass daily lock)
+    window.resetTanda = () => {
+      if(hasChosenToday()){
+        const s = getStoredChoice();
+        if(s) { showStoredModal(s.bonus, true); return; }
+      }
+      createBulbs(BULB_COUNT);
+      assignBonuses();
+      positionBulbs();
+    };
+
+    console.log('Guirnalda inicializada con bloqueo diario.');
   } catch (err) {
     console.error('Error inicializando guirnalda:', err);
   }
