@@ -3,29 +3,29 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Estrellas - Bonos sorpresa</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Luces — Revelar bono</title>
+  <link rel="stylesheet" href="estilo.css" />
 </head>
 <body>
-  <main class="stage">
-    <svg class="wave" viewBox="0 0 1000 200" preserveAspectRatio="none" aria-hidden="true">
-      <path d="M0,100 C150,0 350,200 500,100 C650,0 850,200 1000,100" stroke="#222" fill="none" stroke-width="4" />
+  <main class="stage" id="stage">
+    <!-- onda / cuerda -->
+    <svg class="wave" viewBox="0 0 1000 220" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0,110 C150,10 350,210 500,110 C650,10 850,210 1000,110" stroke="#111" fill="none" stroke-width="6" stroke-linecap="round"/>
     </svg>
 
-    <div id="string" class="string" aria-hidden="true"></div>
+    <!-- contenedor donde JS colocará las bombillas -->
+    <div id="lights" class="lights" role="list" aria-label="Luces navideñas"></div>
 
-    <div id="stars" class="stars" role="list" aria-label="Estrellas con bonos sorpresa">
-      <!-- JS generará las estrellas -->
-    </div>
-
-    <div id="popup" class="popup" hidden>
-      <div class="popup-card" role="dialog" aria-modal="true" aria-live="polite">
-        <button id="popup-close" class="close" aria-label="Cerrar">✕</button>
-        <div id="popup-content" class="popup-content"></div>
+    <!-- tooltip para mostrar bono -->
+    <div id="tooltip" class="tooltip" role="status" aria-live="polite" hidden>
+      <div class="tooltip-inner">
+        <button id="tooltip-close" class="tooltip-close" aria-label="Cerrar">✕</button>
+        <div id="tooltip-text" class="tooltip-text"></div>
       </div>
     </div>
 
-    <div id="confetti-layer" class="confetti-layer" aria-hidden="true"></div>
+    <!-- capa para confetti -->
+    <div id="confetti" class="confetti-layer" aria-hidden="true"></div>
   </main>
 
   <script src="script.js"></script>
