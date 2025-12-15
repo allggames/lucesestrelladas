@@ -233,3 +233,7 @@ svg.garland{position:relative; width:92%; height:100%; pointer-events:none; z-in
   .tree.animate{ animation: none; } /* no float animation in very small devices for perf */
 }
 
+/* respaldo: ocultar palitos y barritas blancas si llegan a aparecer */
+line.hanger, .hanger { display:none !important; }
+.bulb .cap { display:none !important; }
+.bulb .art svg rect { display:none !important; } /* por si queda el rect dentro del SVG */
