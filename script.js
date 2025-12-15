@@ -1,4 +1,6 @@
 // script.js — una elección por dispositivo por día (localStorage)
+// Mantengo la lógica que ya tienes: no hay "reiniciar" en la UI.
+
 document.addEventListener('DOMContentLoaded', () => {
   try {
     const STORAGE_KEY = 'guirnalda.choice.v1';
@@ -45,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return st && st.date === todayStr();
     }
 
-    // visual helpers
+    // visuals helpers
     function shuffle(arr){
       const a = arr.slice();
       for(let i=a.length-1;i>0;i--){
@@ -95,6 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
       window.removeEventListener('resize', positionBulbs);
       window.addEventListener('resize', positionBulbs);
     }
+
     function assignBonuses(){
       const picks = shuffle(BONUS).slice(0, BULB_COUNT);
       const bulbs = document.querySelectorAll('.bulb');
@@ -111,6 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       console.log('Bonos asignados:', picks);
     }
+
     function positionBulbs(){
       const nodes = Array.from(document.querySelectorAll('.bulb'));
       if(!path || !svg || nodes.length === 0) return;
@@ -184,13 +188,51 @@ document.addEventListener('DOMContentLoaded', () => {
       modal.setAttribute('aria-hidden','false');
     }
 
-    // confetti + modal handlers (igual que antes)
-    function createConfettiAtElement(el){ /* ...igual que antes... */ }
-    modalOk.addEventListener('click', () => { modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); });
+    // confetti
+    function createConfettiAtElement(el){
+      const rect = el.getBoundingClientRect();
+      const cx = rect.left + rect.width/2;
+      const cy = rect.top + rect.height/2;
+      const colors = ['#ff3b30','#ff9500','#ffcc00','#34c759','#5ac8fa','#5856d6','#ff2d55'];
+      for(let i=0;i<28;i++){
+        const p = document.createElement('div');
+        p.className = 'confetti';
+        p.style.left = (cx + (Math.random()-0.5)*140) + 'px';
+        p.style.top = (cy + (Math.random()-0.5)*100) + 'px';
+        p.style.background = colors[Math.floor(Math.random()*colors.length)];
+        p.style.width = (6 + Math.random()*10) + 'px';
+        p.style.height = (8 + Math.random()*12) + 'px';
+        p.style.borderRadius = (Math.random()>0.5 ? '2px' : '50%');
+        p.style.animationDelay = (Math.random()*200) + 'ms';
+        confettiLayer.appendChild(p);
+        setTimeout(()=> p.remove(), 1600 + Math.random()*800);
+      }
+    }
+
+    // modal handler
+    modalOk.addEventListener('click', () => {
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden','true');
+      const title = modal.querySelector('.modal-title');
+      const sub = modal.querySelector('.modal-sub');
+      if(title) title.textContent = '¡Felicidades!';
+      if(sub) sub.textContent = 'Te ganaste un bono de';
+    });
 
     // storage helpers
-    function getStoredChoice(){ try { const raw = localStorage.getItem(STORAGE_KEY); if(!raw) return null; return JSON.parse(raw); } catch(e){return null;} }
-    function setStoredChoice(bonus){ try { const item = { bonus, date: todayStr(), ts: Date.now() }; localStorage.setItem(STORAGE_KEY, JSON.stringify(item)); } catch(e){} }
+    function getStoredChoice(){
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(!raw) return null;
+        return JSON.parse(raw);
+      } catch(e){ return null; }
+    }
+    function setStoredChoice(bonus){
+      try {
+        const item = { bonus, date: todayStr(), ts: Date.now() };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(item));
+      } catch(e){ /* ignore */ }
+    }
 
     // init
     createBulbs(BULB_COUNT);
