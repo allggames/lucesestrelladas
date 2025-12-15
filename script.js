@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
   return `
     <svg class="inner" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
       <!-- hang-top: rect redondeado más visible -->
-      <rect x="22" y="0" width="20" height="10" rx="4" ry="4" fill="#111" stroke="#fff" stroke-width="1.6" />
+      <rect x="22" y="0" width="22" height="14" rx="4" ry="4" fill="#111" stroke="#fff" stroke-width="1.6" />
       <!-- detalle superior -->
       <path d="M32 12 C34 12 36 14 36 16" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round"/>
       <!-- cuerpo de la bombilla -->
