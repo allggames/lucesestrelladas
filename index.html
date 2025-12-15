@@ -3,24 +3,55 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Luces — Revelar bono</title>
+  <title>Luces — Juego interactivo de bonos</title>
   <link rel="stylesheet" href="estilo.css" />
 </head>
 <body>
-  <main class="stage" id="stage">
+  <main id="stage" class="stage" role="application" aria-label="Juego de luces y bonos">
+    <header class="hud">
+      <div class="hud-left">
+        <h1>Luces — Bonos sorpresa</h1>
+        <p class="hint">Selecciona las bombillas para revelar bonos</p>
+      </div>
+      <div class="hud-right">
+        <div class="stats">
+          <div>Puntuación: <span id="score">0</span></div>
+          <div>Intentos restantes: <span id="attempts">0</span></div>
+          <div>Ronda: <span id="round">0</span></div>
+        </div>
+        <div class="controls">
+          <button id="startBtn" class="btn primary">Empezar</button>
+          <button id="nextBtn" class="btn" hidden>Siguiente ronda</button>
+          <button id="resetBtn" class="btn">Reiniciar</button>
+        </div>
+      </div>
+    </header>
+
     <!-- onda / cuerda -->
     <svg class="wave" viewBox="0 0 1000 220" preserveAspectRatio="none" aria-hidden="true">
-      <path d="M0,110 C150,10 350,210 500,110 C650,10 850,210 1000,110" stroke="#111" fill="none" stroke-width="6" stroke-linecap="round"/>
+      <path id="wavePath" d="M0,110 C150,10 350,210 500,110 C650,10 850,210 1000,110" stroke="#111" fill="none" stroke-width="6" stroke-linecap="round"/>
     </svg>
 
     <!-- contenedor donde JS colocará las bombillas -->
-    <div id="lights" class="lights" role="list" aria-label="Luces navideñas"></div>
+    <div id="lights" class="lights" role="list" aria-label="Luces"></div>
 
-    <!-- tooltip para mostrar bono -->
+    <!-- tooltip para mostrar bono encima de la bombilla -->
     <div id="tooltip" class="tooltip" role="status" aria-live="polite" hidden>
       <div class="tooltip-inner">
-        <button id="tooltip-close" class="tooltip-close" aria-label="Cerrar">✕</button>
         <div id="tooltip-text" class="tooltip-text"></div>
+        <button id="tooltip-close" class="tooltip-close" aria-label="Cerrar">✕</button>
+      </div>
+    </div>
+
+    <!-- panel resultado (modal pequeño) -->
+    <div id="resultModal" class="modal" hidden role="dialog" aria-modal="true">
+      <div class="modal-card">
+        <h2 id="result-title">Ronda terminada</h2>
+        <p id="result-body"></p>
+        <div class="modal-actions">
+          <button id="modal-next" class="btn primary">Siguiente ronda</button>
+          <button id="modal-reset" class="btn">Reiniciar</button>
+        </div>
       </div>
     </div>
 
