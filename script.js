@@ -1,6 +1,6 @@
-// script.js — hangers corregidos: palitos blancos que sujetan cada bombilla.
-// Coloca bombillas dentro del SVG (<foreignObject>) y dibuja <line> desde la ruta hasta la parte superior de cada bombilla,
-// calculando todo en coordenadas SVG para evitar desfases al escalar/centrar el SVG.
+// script.js — versión sin "hangers" (sin palitos blancos).
+// Bombillas colocadas dentro del SVG usando <foreignObject> para mantener alineación.
+// Conserva: bloqueo diario (localStorage), bonos ponderados (100/150/200), árboles y responsive behavior.
 
 document.addEventListener('DOMContentLoaded', () => {
   try {
@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const svg = document.getElementById('garlandSVG');
     const path = document.getElementById('garlandPath');
-    const lights = document.getElementById('lights'); // fallback overlay
+    const lights = document.getElementById('lights'); // fallback overlay if needed
     const modal = document.getElementById('modal');
     const modalBonus = document.getElementById('modal-bonus');
     const modalOk = document.getElementById('modal-ok');
@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Helpers
+    // ---------- helpers ----------
     const todayStr = () => {
       const d = new Date();
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function getStoredChoice(){ try { const raw = localStorage.getItem(STORAGE_KEY); if(!raw) return null; return JSON.parse(raw); } catch(e){ return null; } }
     function setStoredChoice(bonus){ try { const item = { bonus, date: todayStr(), ts: Date.now() }; localStorage.setItem(STORAGE_KEY, JSON.stringify(item)); } catch(e){ } }
     function hasChosenToday(){ const st = getStoredChoice(); return st && st.date === todayStr(); }
+
     function shuffle(arr){ const a = arr.slice(); for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
     function hexToRgba(hex, a=0.28){ const c = hex.replace('#',''); const r = parseInt(c.substring(0,2),16); const g = parseInt(c.substring(2,4),16); const b = parseInt(c.substring(4,6),16); return `rgba(${r},${g},${b},${a})`; }
     function bulbSVG(color){ return `
@@ -50,27 +51,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const supportsForeignObject = typeof document.createElementNS === 'function' && !!document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject').toString;
 
-    let hangerEls = [];
+    // groupEls holds the <g> elements (or null if fallback used)
     let groupEls = [];
 
+    // ---------- create bulbs (inside SVG using foreignObject) ----------
     function createBulbs(n){
-      // cleanup
-      hangerEls.forEach(l=>l.remove());
-      hangerEls = [];
-      groupEls.forEach(g=> g && g.remove());
+      // remove previous groups
+      groupEls.forEach(g => g && g.remove());
       groupEls = [];
       if(!supportsForeignObject) lights.innerHTML = '';
 
       for(let i=0;i<n;i++){
-        // hanger line
-        const line = document.createElementNS('http://www.w3.org/2000/svg','line');
-        line.setAttribute('class','hanger');
-        line.setAttribute('stroke','#fff');
-        line.setAttribute('stroke-linecap','round');
-        line.setAttribute('opacity','0.98');
-        svg.appendChild(line);
-        hangerEls.push(line);
-
         if(supportsForeignObject){
           const g = document.createElementNS('http://www.w3.org/2000/svg','g');
           g.setAttribute('class','bulb-svg');
@@ -96,13 +87,15 @@ document.addEventListener('DOMContentLoaded', () => {
           `;
           f.appendChild(div);
           g.appendChild(f);
-          svg.appendChild(g); // after line -> line under group
+          svg.appendChild(g);
           groupEls.push(g);
 
+          // add listeners to the inner button
           const btn = div.querySelector('button.bulb');
           btn.addEventListener('click', onBulbClick);
           btn.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onBulbClick({ currentTarget: btn }); } });
         } else {
+          // fallback: overlay HTML button
           const btn = document.createElement('button');
           btn.className = 'bulb';
           btn.type = 'button';
@@ -153,7 +146,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // Main corrected positioning: compute everything in SVG units using normals
+    // ---------- position bulbs ----------
+    // Place bulbs using SVG coordinates; no hangers.
     function positionBulbs(){
       if(!path || !svg) return;
 
@@ -161,25 +155,22 @@ document.addEventListener('DOMContentLoaded', () => {
       const isMobile = (window.innerWidth || document.documentElement.clientWidth) < 520;
       const cssBulbPx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bulb-size')) || 96;
       const offsetPx = Math.max(cssBulbPx * (isMobile ? 0.16 : 0.22), isMobile ? 12 : 20);
-      const bulbRadiusPx = cssBulbPx * 0.5;
-      const adjustFactor = 0.9; // fraction of radius to stop hanger near top
-      const adjustPx = bulbRadiusPx * adjustFactor;
 
-      // Attempt to get CTM for scale (pixels per SVG unit)
+      // get CTM for scale (SVG user unit -> screen px)
       let ctm = null;
       try { ctm = svg.getScreenCTM(); } catch(e) { ctm = null; }
       const hasCTM = !!ctm && typeof svg.createSVGPoint === 'function';
-      // scale from SVG user units to screen pixels (approx)
       const scale = hasCTM ? Math.hypot(ctm.a, ctm.b) : null;
 
       if(!supportsForeignObject){
-        // fallback old method for overlay HTML bulbs + hanger in SVG
+        // fallback: overlay HTML buttons positioning same as earlier method
         const nodes = Array.from(document.querySelectorAll('.bulb'));
         if(nodes.length === 0) return;
         const svgRect = svg.getBoundingClientRect();
         const vb = svg.viewBox.baseVal;
         const scaleX = svgRect.width / (vb.width || svgRect.width);
         const scaleY = svgRect.height / (vb.height || svgRect.height);
+        const containerRect = lights.getBoundingClientRect();
 
         nodes.forEach((el, idx) => {
           const t = (idx + 1) / (nodes.length + 1);
@@ -187,39 +178,23 @@ document.addEventListener('DOMContentLoaded', () => {
           const delta = Math.max(1, L * 0.002);
           const p1 = path.getPointAtLength(Math.max(0, t*L - delta));
           const p2 = path.getPointAtLength(Math.min(L, t*L + delta));
-          // normal in SVG units mapped to screen by scaleX/scaleY (approx)
-          const dx_screen = (p2.x - p1.x)*scaleX;
-          const dy_screen = (p2.y - p1.y)*scaleY;
-          const len_screen = Math.hypot(dx_screen, dy_screen) || 1;
-          const nx_screen = -dy_screen / len_screen;
-          const ny_screen = dx_screen / len_screen;
-          const screenStartX = svgRect.left + svgPt.x * scaleX;
-          const screenStartY = svgRect.top + svgPt.y * scaleY;
-          const screenTargetX = screenStartX + nx_screen * offsetPx;
-          const screenTargetY = screenStartY + ny_screen * offsetPx;
-          const containerRect = lights.getBoundingClientRect();
-          el.style.left = (screenTargetX - containerRect.left) + 'px';
-          el.style.top  = (screenTargetY - containerRect.top) + 'px';
-          // hanger: end slightly above the bulb top
-          const screenHangerEndX = screenStartX + nx_screen * (offsetPx - adjustPx);
-          const screenHangerEndY = screenStartY + ny_screen * (offsetPx - adjustPx);
-          const hanger = hangerEls[idx];
-          if(hanger){
-            const userX1 = (screenStartX - svgRect.left) / scaleX;
-            const userY1 = (screenStartY - svgRect.top) / scaleY;
-            const userX2 = (screenHangerEndX - svgRect.left) / scaleX;
-            const userY2 = (screenHangerEndY - svgRect.top) / scaleY;
-            hanger.setAttribute('x1', userX1);
-            hanger.setAttribute('y1', userY1);
-            hanger.setAttribute('x2', userX2);
-            hanger.setAttribute('y2', userY2);
-            hanger.setAttribute('stroke-width', Math.max(2, cssBulbPx*0.06));
-          }
+          const dx = (p2.x - p1.x) * scaleX;
+          const dy = (p2.y - p1.y) * scaleY;
+          const len = Math.hypot(dx, dy) || 1;
+          const nx = -dy / len;
+          const ny = dx / len;
+          const screenX = svgRect.left + svgPt.x * scaleX + nx * offsetPx;
+          const screenY = svgRect.top  + svgPt.y * scaleY + ny * offsetPx;
+          el.style.left = (screenX - containerRect.left) + 'px';
+          el.style.top  = (screenY - containerRect.top) + 'px';
+          const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
+          const art = el.querySelector('.art');
+          if(art) art.style.transform = `translateY(6px) rotate(${-angle}deg)`;
         });
         return;
       }
 
-      // Preferred path when foreignObject is supported
+      // Preferred: place groups inside SVG
       const groups = Array.from(svg.querySelectorAll('g.bulb-svg'));
       if(groups.length === 0) return;
 
@@ -230,29 +205,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const delta = Math.max(1, L * 0.002);
         const p1 = path.getPointAtLength(Math.max(0, t*L - delta));
         const p2 = path.getPointAtLength(Math.min(L, t*L + delta));
-        // normal in SVG units
+        // normal in SVG units (from p1->p2)
         const dx = p2.x - p1.x;
         const dy = p2.y - p1.y;
         const len = Math.hypot(dx, dy) || 1;
         const nx = -dy / len;
         const ny = dx / len;
 
-        // convert desired offsetPx (pixels) into SVG units using scale
+        // convert offsetPx to SVG units using scale
         const offsetSvg = offsetPx / (scale || 1);
-        const adjustSvg = adjustPx / (scale || 1);
 
-        // svgTarget is the center of the bulb in SVG units
+        // center of bulb in SVG units
         const svgTargetX = svgPt.x + nx * offsetSvg;
         const svgTargetY = svgPt.y + ny * offsetSvg;
 
-        // svg hanger end point (closer to bulb top)
-        const svgHangerEndX = svgPt.x + nx * (offsetSvg - adjustSvg);
-        const svgHangerEndY = svgPt.y + ny * (offsetSvg - adjustSvg);
-
-        // set group transform to place bulb center at svgTarget
+        // set group transform
         g.setAttribute('transform', `translate(${svgTargetX}, ${svgTargetY})`);
 
-        // set foreignObject size in SVG units so internal button occupies approx cssBulbPx pixels
+        // set foreignObject size so it is approx cssBulbPx pixels
         const f = g.querySelector('foreignObject');
         if(f){
           const widthSvg = cssBulbPx / (scale || 1);
@@ -263,17 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
           f.setAttribute('y', -(heightSvg/2));
         }
 
-        // set hanger coordinates in SVG user units
-        const hanger = hangerEls[idx];
-        if(hanger){
-          hanger.setAttribute('x1', svgPt.x);
-          hanger.setAttribute('y1', svgPt.y);
-          hanger.setAttribute('x2', svgHangerEndX);
-          hanger.setAttribute('y2', svgHangerEndY);
-          hanger.setAttribute('stroke-width', Math.max(2, cssBulbPx*0.06));
-        }
-
-        // rotate inner art to match tangent
+        // rotate inner art according to tangent
         const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
         const art = g.querySelector('.art');
         if(art) art.style.transform = `translateY(6px) rotate(${-angle}deg)`;
@@ -284,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
       window.requestAnimationFrame(() => { setTimeout(() => positionBulbs(), 50); });
     }
 
-    // selection, confetti, trees, modal handlers kept (no change)...
+    // ---------- selection ----------
     function onBulbClick(e){
       const btn = e.currentTarget;
       if(!btn) return;
@@ -305,6 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showModalWith(bonus){ modalBonus.textContent = bonus; modal.classList.add('show'); modal.setAttribute('aria-hidden','false'); }
     function showStoredModal(bonus){ const title = modal.querySelector('.modal-title'); const sub = modal.querySelector('.modal-sub'); if(title) title.textContent='Ya elegiste hoy'; if(sub) sub.textContent='No puedes elegir otra hasta mañana. Tu bono fue:'; modalBonus.textContent = bonus; modal.classList.add('show'); modal.setAttribute('aria-hidden','false'); }
 
+    // ---------- confetti ----------
     function createConfettiAtElement(btn){
       const rect = btn.getBoundingClientRect();
       const cx = rect.left + rect.width/2;
@@ -327,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // Trees logic (unchanged from previous version)
+    // ---------- trees (same) ----------
     function createTrees(count = 40){
       if(!treesLayer || !stageEl) return;
       treesLayer.innerHTML = '';
@@ -364,7 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', ()=>{ clearTimeout(treesResizeTimer); treesResizeTimer = setTimeout(()=>{ refreshTrees(); positionBulbsDeferred(); }, 220); });
     window.addEventListener('orientationchange', ()=>{ setTimeout(()=>{ refreshTrees(); positionBulbsDeferred(); }, 240); });
 
-    // modal handler
+    // modal
     modalOk.addEventListener('click', ()=>{ modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); const title = modal.querySelector('.modal-title'); const sub = modal.querySelector('.modal-sub'); if(title) title.textContent='¡Felicidades!'; if(sub) sub.textContent='Te ganaste un bono de'; });
 
     // init
@@ -382,9 +343,9 @@ document.addEventListener('DOMContentLoaded', () => {
       showStoredModal(stored.bonus);
     }
 
-    console.log('Guirnalda inicializada (hangers mejorados).');
+    console.log('Guirnalda inicializada (sin palitos).');
 
   } catch (err) {
     console.error('Error inicializando guirnalda:', err);
   }
-});;
+});
