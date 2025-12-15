@@ -2,7 +2,7 @@
   --bg-dark: #052f26;
   --string-color: #fff;
   --bulb-size:96px;
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+  --font: "EB Garamond", "Garamond", serif; /* usamos EB Garamond (Google) como Garamond */
 }
 
 /* Reset / base */
@@ -51,7 +51,6 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
   justify-content:center; /* centra la guirnalda */
   padding:8px 12px;
   border-radius:14px;
-  /* ligero marco translúcido */
   background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
   box-shadow: 0 12px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.02);
 }
@@ -93,6 +92,52 @@ svg.garland{position:relative; width:92%; height:100%; pointer-events:none; z-in
 .bulb:hover{transform:translateY(-8px) scale(1.02)}
 .bulb.revealed{opacity:1;pointer-events:none;transform:scale(1.06)}
 .bulb.revealed .glow{opacity:0.6}
+
+/* Botones generales */
+.btn{
+  background:#0b6b4a;color:#fff;border:0;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:700;
+  font-family:var(--font);
+}
+
+/* Botón Aceptar del modal — estilo más bonito */
+.modal .btn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  background: linear-gradient(90deg,#7adf9b,#19a974);
+  color:#063925;
+  border:none;
+  padding:10px 18px;
+  font-weight:800;
+  border-radius:12px;
+  box-shadow: 0 10px 30px rgba(12,60,44,0.28);
+  cursor:pointer;
+  transition:transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  font-size:15px;
+}
+
+/* pequeño check al inicio del botón usando pseudo-elemento */
+.modal .btn::before{
+  content: "✓";
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  background:rgba(255,255,255,0.12);
+  color:#fff;
+  font-weight:900;
+  font-size:14px;
+  transform:translateY(-1px);
+}
+
+/* hover & focus */
+.modal .btn:hover{ transform:translateY(-3px) scale(1.02); box-shadow: 0 14px 36px rgba(12,60,44,0.36); }
+.modal .btn:active{ transform:translateY(0); }
+.modal .btn:focus{ outline: 3px solid rgba(122,223,155,0.28); outline-offset:3px; }
 
 /* Modal */
 .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:90}
