@@ -1,96 +1,77 @@
 :root{
   --bg-dark: #053a2b;
   --string-color: #fff;
-  --bulb-size:72px;
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  --bulb-size:96px; /* ajustar tamaño global de bombillas */
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
 }
 
-/* reset muy pequeño para evitar estilos inesperados */
-*{box-sizing:border-box; margin:0; padding:0}
-html,body{height:100%}
-body{font-family:var(--font-sans);background:var(--bg-dark);color:#fff;display:flex;justify-content:center;padding:20px}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:var(--font);background:var(--bg-dark);color:#fff}
+body{display:flex;justify-content:center;padding:18px}
 
-.stage{width:100%;max-width:1100px;position:relative;padding:12px}
+.stage{width:100%;max-width:1200px;position:relative;padding:12px}
 
-/* HUD */
-.hud{margin-bottom:8px}
-.hud h1{font-size:20px}
-.hint{margin-top:6px;color:rgba(255,255,255,0.9)}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.title{font-size:18px}
+.controls{display:flex;gap:8px}
+.btn{background:#0b6b4a;color:#fff;border:0;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:700}
 
-/* wrapper que contiene SVG y overlay con luces */
-.svg-wrapper{position:relative;width:100%;height:260px;overflow:visible}
-.garland-svg{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:1}
+.svg-wrapper{position:relative;width:100%;height:360px;overflow:visible}
+svg.garland{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:1}
+.lights{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:auto;z-index:2} /* permitir eventos */
 
-/* IMPORTANT: .lights ocupa exactamente el mismo rect que el SVG y es RELATIVE/ABSOLUTE
-   Las bombillas serán position:absolute dentro de este contenedor. */
-.lights{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:2}
-
-/* cada bombilla es un botón absoluto.
-   Nota: NO hay display:block que ocupe todo el ancho; el botón tiene tamaño fijo y position:absolute */
+/* bombilla botón absoluto */
 .bulb{
   position:absolute;
   width:var(--bulb-size);
   height:var(--bulb-size);
   margin-left:calc(var(--bulb-size)/-2);
   margin-top:calc(var(--bulb-size)/-2);
-  pointer-events:auto;           /* permitir clicks en cada bombilla */
-  background:transparent;
-  border:0;
-  padding:0;
-  cursor:pointer;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  touch-action:manipulation;
-  outline:none;
-  border-radius:50%;
+  pointer-events:auto;
+  border:0;background:transparent;padding:0;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  touch-action:manipulation;outline:none;border-radius:50%;
+  transition:transform .18s ease, opacity .18s ease;
 }
+.bulb:focus{box-shadow:0 0 0 8px rgba(255,255,255,0.06);border-radius:50%}
 
-/* "cable corto" encima de la bombilla (se ve que colga) */
 .bulb::before{
   content:"";
   position:absolute;
-  top:-44px;
-  left:50%;
-  transform:translateX(-50%);
-  width:3px;
-  height:36px;
-  background:var(--string-color);
-  border-radius:2px;
-  z-index:6;
+  top:calc(-1 * var(--bulb-size) * 0.56);
+  left:50%;transform:translateX(-50%);
+  width:4px;height:calc(var(--bulb-size) * 0.48);background:var(--string-color);border-radius:2px;z-index:6;
 }
 
-/* glow y svg interior */
 .bulb .glow{
-  position:absolute;
-  width:120%;
-  height:120%;
-  border-radius:50%;
-  filter:blur(8px);
-  z-index:1;
-  transform:translateY(2px);
+  position:absolute;width:140%;height:140%;border-radius:50%;filter:blur(14px);z-index:1;transform:translateY(6px);
+  transition:opacity .18s ease, transform .18s ease;
 }
-.bulb .art{ position:relative; width:78%; height:78%; z-index:7; transform-origin:center; }
+.bulb .art{ width:86%; height:86%; transform-origin:center; display:block; z-index:7; transition:transform .18s ease }
+.bulb .cap{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:40%;height:12%;background:linear-gradient(180deg,#fff,#ddd);border-radius:4px;z-index:8}
 
-/* capuchón y comportamiento visual */
-.bulb .cap{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:38%;height:12%;background:linear-gradient(180deg,#fff,#ddd);border-radius:4px;z-index:8}
-.bulb:hover{transform:translateY(-6px)}
-
-/* estado revela-do */
-.bulb.revealed{opacity:0.98;pointer-events:none;transform:scale(1.03)}
-.bulb.revealed .glow{opacity:0.5}
+.bulb:hover{transform:translateY(-8px) scale(1.02)}
+.bulb.revealed{opacity:1;pointer-events:none;transform:scale(1.06)}
+.bulb.revealed .glow{opacity:0.6}
 
 /* modal */
-.modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:60}
-.modal-card{width:320px;padding:16px;border-radius:12px;background:#fff;color:#111;text-align:center}
-.modal-bonus{font-weight:800;font-size:20px;margin-top:8px}
-.modal-actions{margin-top:12px}
-.btn{background:#0b6b4a;color:#fff;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:90}
+.modal.show{display:flex}
+.modal-card{width:360px;max-width:92%;padding:18px;border-radius:12px;background:#fff;color:#0b3b2c;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,0.28)}
+.modal-title{margin:0;font-size:18px}
+.modal-sub{color:#0b3b2c;margin:8px 0 0}
+.modal-bonus{font-size:22px;font-weight:800;margin:10px 0;color:#084a33}
 
 /* confetti */
-.confetti-layer{position:fixed;inset:0;pointer-events:none;z-index:70}
+.confetti-layer{position:fixed;inset:0;pointer-events:none;z-index:95}
 .confetti{position:absolute;width:8px;height:12px;border-radius:2px;animation:fall 1200ms forwards cubic-bezier(.2,.8,.25,1)}
 @keyframes fall{0%{opacity:1;transform:translateY(-10px) rotate(0deg)}100%{opacity:1;transform:translateY(160vh) rotate(540deg)}}
 
-/* responsive */
-@media (max-width:720px){:root{--bulb-size:56px}.svg-wrapper{height:220px}}
+@media (max-width:780px){
+  :root{--bulb-size:76px}
+  .svg-wrapper{height:320px}
+}
+@media (max-width:440px){
+  :root{--bulb-size:64px}
+  .svg-wrapper{height:280px}
+}
