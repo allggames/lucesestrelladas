@@ -1,24 +1,64 @@
 :root{
-  --bg-dark: #053a2b;
+  --bg-dark: #052f26;
   --string-color: #fff;
   --bulb-size:96px;
   --font: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
 }
 
+/* Reset / base */
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;font-family:var(--font);background:var(--bg-dark);color:#fff}
-body{display:flex;justify-content:center;padding:18px}
+html,body{height:100%;margin:0;font-family:var(--font);background:linear-gradient(180deg,#053a2b 0%, #072f25 50%, #03241e 100%);color:#fff}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px}
 
-.stage{width:100%;max-width:1200px;position:relative;padding:12px}
+/* Stage centra todo */
+.stage{width:100%;max-width:1100px;position:relative;padding:18px;display:flex;flex-direction:column;align-items:center;gap:18px}
 
-.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.title{font-size:18px}
-.btn{background:#0b6b4a;color:#fff;border:0;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:700}
+/* Header / título */
+.topbar{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:6px}
+.title{
+  font-size:36px;
+  margin:0;
+  line-height:1;
+  font-weight:800;
+  letter-spacing:1px;
+  background: linear-gradient(90deg,#ff3b30,#ff9500,#ffd300,#43a047,#1e88e5,#8e24aa);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  text-transform:uppercase;
+  text-align:center;
+  text-shadow: 0 4px 18px rgba(0,0,0,0.45);
+}
+.subtitle{
+  margin:0;
+  color:rgba(255,255,255,0.9);
+  font-size:14px;
+  letter-spacing:1.6px;
+  text-transform:uppercase;
+  font-weight:700;
+  text-align:center;
+  opacity:0.95;
+}
 
-.svg-wrapper{position:relative;width:100%;height:360px;overflow:visible}
-svg.garland{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:1}
+/* SVG + overlay */
+.svg-wrapper{
+  position:relative;
+  width:100%;
+  height:360px;
+  overflow:visible;
+  display:flex;
+  align-items:center;
+  justify-content:center; /* centra la guirnalda */
+  padding:8px 12px;
+  border-radius:14px;
+  /* ligero marco translúcido */
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  box-shadow: 0 12px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.02);
+}
+svg.garland{position:relative; width:92%; height:100%; pointer-events:none; z-index:1}
 .lights{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:auto;z-index:2}
 
+/* Bulb */
 .bulb{
   position:absolute;
   width:var(--bulb-size);
@@ -29,10 +69,11 @@ svg.garland{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events
   border:0;background:transparent;padding:0;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
   touch-action:manipulation;outline:none;border-radius:50%;
-  transition:transform .18s ease, opacity .18s ease;
+  transition:transform .18s ease, opacity .18s ease, filter .18s ease;
 }
 .bulb:focus{box-shadow:0 0 0 8px rgba(255,255,255,0.06);border-radius:50%}
 
+/* cable corto */
 .bulb::before{
   content:"";
   position:absolute;
@@ -41,6 +82,7 @@ svg.garland{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events
   width:4px;height:calc(var(--bulb-size) * 0.48);background:var(--string-color);border-radius:2px;z-index:6;
 }
 
+/* glow/art */
 .bulb .glow{
   position:absolute;width:140%;height:140%;border-radius:50%;filter:blur(14px);z-index:1;transform:translateY(6px);
   transition:opacity .18s ease, transform .18s ease;
@@ -52,6 +94,7 @@ svg.garland{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events
 .bulb.revealed{opacity:1;pointer-events:none;transform:scale(1.06)}
 .bulb.revealed .glow{opacity:0.6}
 
+/* Modal */
 .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:90}
 .modal.show{display:flex}
 .modal-card{width:360px;max-width:92%;padding:18px;border-radius:12px;background:#fff;color:#0b3b2c;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,0.28)}
@@ -59,15 +102,19 @@ svg.garland{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events
 .modal-sub{color:#0b3b2c;margin:8px 0 0}
 .modal-bonus{font-size:22px;font-weight:800;margin:10px 0;color:#084a33}
 
+/* confetti */
 .confetti-layer{position:fixed;inset:0;pointer-events:none;z-index:95}
 .confetti{position:absolute;width:8px;height:12px;border-radius:2px;animation:fall 1200ms forwards cubic-bezier(.2,.8,.25,1)}
 @keyframes fall{0%{opacity:1;transform:translateY(-10px) rotate(0deg)}100%{opacity:1;transform:translateY(160vh) rotate(540deg)}}
 
-@media (max-width:780px){
+/* Responsive */
+@media (max-width:900px){
   :root{--bulb-size:76px}
   .svg-wrapper{height:320px}
 }
-@media (max-width:440px){
-  :root{--bulb-size:64px}
-  .svg-wrapper{height:280px}
+@media (max-width:520px){
+  :root{--bulb-size:60px}
+  .svg-wrapper{height:260px}
+  .title{font-size:24px}
+  .subtitle{font-size:12px}
 }
