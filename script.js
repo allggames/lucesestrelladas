@@ -1,5 +1,6 @@
-// script.js - Guirnalda interactiva: posiciones siguiendo un SVG path
-// Configuración (modifica según necesites)
+// script.js - Guirnalda: bombillas coloreadas sobre path, revelar bono y juego básico
+
+// CONFIG
 const BONUS_OPTIONS = [
   {label: "150% de bono", value: 150},
   {label: "100% de bono", value: 100},
@@ -9,14 +10,15 @@ const BONUS_OPTIONS = [
   {label: "75% de bono", value: 75},
   {label: "300% de bono", value: 300}
 ];
-const BULB_COUNT = 9;        // cuantas bombillas en la guirnalda
-const PICKS_PER_ROUND = 3;   // intentos por ronda
+const COLORS = ['#ffd54f','#ff6b6b','#4cd964','#5ac8fa','#ffcc80','#c7a3ff','#9be7ff','#ffd1dc','#b2f7ef'];
+const BULB_COUNT = 9;
+const PICKS_PER_ROUND = 3;
 
 // DOM
 const stage = document.getElementById('stage');
-const lightsContainer = document.getElementById('lights');
 const garlandSVG = document.getElementById('garlandSVG');
 const garlandPath = document.getElementById('garlandPath');
+const lightsContainer = document.getElementById('lights');
 const tooltip = document.getElementById('tooltip');
 const tooltipText = document.getElementById('tooltip-text');
 const tooltipClose = document.getElementById('tooltip-close');
@@ -33,6 +35,7 @@ const modalReset = document.getElementById('modal-reset');
 const resultTitle = document.getElementById('result-title');
 const resultBody = document.getElementById('result-body');
 
+// Estado del juego
 let game = {
   active: false,
   score: 0,
@@ -41,17 +44,17 @@ let game = {
   assignments: []
 };
 
-// Util: barajar
-function shuffle(a){
-  const arr = a.slice();
-  for(let i = arr.length -1; i>0; i--){
+// util: barajar array
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
     const j = Math.floor(Math.random()*(i+1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+    [a[i], a[j]] = [a[j], a[i]];
   }
-  return arr;
+  return a;
 }
 
-// Crear bombillas DOM
+// crear bulbs
 function createBulbs(n){
   lightsContainer.innerHTML = '';
   for(let i=0;i<n;i++){
@@ -67,7 +70,7 @@ function createBulbs(n){
 
     const svgWrap = document.createElement('div');
     svgWrap.className = 'svg-wrap';
-    svgWrap.innerHTML = bulbSVGPath('#ffd54f');
+    svgWrap.innerHTML = bulbSVG(COLORS[i % COLORS.length]);
     b.appendChild(svgWrap);
 
     const cap = document.createElement('div');
@@ -80,32 +83,33 @@ function createBulbs(n){
     lightsContainer.appendChild(b);
   }
 
-  // posicionar sobre el path una vez insertadas
+  // posicionar en la guirnalda
   positionBulbsOnPath();
   window.addEventListener('resize', positionBulbsOnPath);
 }
 
-// Asignar bonos (sin repetición dentro de la ronda)
+// asignar bonos únicos por ronda (si hay menos bonos que bombillas, se reutilizan)
 function assignBonuses(){
-  const shuffled = shuffle(BONUS_OPTIONS);
+  const shuffledBonuses = shuffle(BONUS_OPTIONS);
   const assignments = [];
   for(let i=0;i<BULB_COUNT;i++){
-    assignments.push(shuffled[i % shuffled.length]);
+    assignments.push(shuffledBonuses[i % shuffledBonuses.length]);
   }
   game.assignments = shuffle(assignments);
-
   const bulbs = document.querySelectorAll('.bulb');
-  const colors = ['#ffd54f','#ff6b6b','#4cd964','#5ac8fa','#ffcc80','#c7a3ff','#9be7ff','#ffd1dc','#b2f7ef'];
   bulbs.forEach((b, idx) => {
     const a = game.assignments[idx];
+    const color = COLORS[idx % COLORS.length];
     b.dataset.bonus = a.label;
     b.dataset.value = a.value;
-    b.style.setProperty('--glow-color', hexToRgba(colors[idx%colors.length], 0.18));
-    b.querySelector('.svg-wrap').innerHTML = bulbSVGPath(colors[idx%colors.length]);
+    b.style.setProperty('--glow', hexToRgba(color, 0.18));
+    b.querySelector('.svg-wrap').innerHTML = bulbSVG(color);
+    b.classList.remove('revealed');
+    b.disabled = false;
   });
 }
 
-// Posicionar bombillas sobre el SVG path (guirnalda)
+// posiciona cada bombilla sobre el path y aplica offset perpendicular para alternar arriba/abajo
 function positionBulbsOnPath(){
   const path = garlandPath;
   const svg = garlandSVG;
@@ -113,43 +117,55 @@ function positionBulbsOnPath(){
   if(!path || !svg || bulbs.length === 0) return;
 
   const pathLength = path.getTotalLength();
-  // la caja del SVG en pixels
   const svgRect = svg.getBoundingClientRect();
-  const viewBox = svg.viewBox.baseVal; // uso del viewBox para escalar
+  const viewBox = svg.viewBox.baseVal;
   const vbW = viewBox.width || svgRect.width;
   const vbH = viewBox.height || svgRect.height;
   const scaleX = svgRect.width / vbW;
   const scaleY = svgRect.height / vbH;
 
-  // distribuir a lo largo del path (evita extremos 0 y length)
   bulbs.forEach((b, i) => {
-    const t = (i + 1) / (bulbs.length + 1); // entre 0..1
-    const pt = path.getPointAtLength(t * pathLength);
-    // convertir coordenadas SVG a coords en pantalla relativos al contenedor .lights
-    const screenX = svgRect.left + pt.x * scaleX;
-    const screenY = svgRect.top + pt.y * scaleY;
+    // distribuir a lo largo del path (evitar extremos exactos)
+    const t = (i + 1) / (bulbs.length + 1);
+    const L = t * pathLength;
+    const pt = path.getPointAtLength(L);
+
+    // aproximar tangente para normal (derivada)
+    const delta = Math.max(1, pathLength * 0.002);
+    const p1 = path.getPointAtLength(Math.max(0, L - delta));
+    const p2 = path.getPointAtLength(Math.min(pathLength, L + delta));
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const len = Math.hypot(dx, dy) || 1;
+    // normal vector (perpendicular)
+    const nx = -dy / len;
+    const ny = dx / len;
+
+    // offset: alternar signo para arriba/abajo y escalar a pixels en pantalla
+    const sign = (i % 2 === 0) ? -1 : 1;
+    const offsetPx = 18; // cuánto separa de la cuerda
+    const offsetX = nx * offsetPx;
+    const offsetY = ny * offsetPx;
+
+    // transformar a coordenadas de pantalla
+    const screenX = svgRect.left + (pt.x * scaleX) + offsetX;
+    const screenY = svgRect.top + (pt.y * scaleY) + offsetY;
 
     const containerRect = lightsContainer.getBoundingClientRect();
     const left = screenX - containerRect.left;
     const top = screenY - containerRect.top;
 
+    // colocar y rotar ligeramente según la tangente
+    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
     b.style.left = `${left}px`;
     b.style.top = `${top}px`;
-
-    // pequeño offset rotacional para dar sensación curvada (opcional)
-    // calcular tangente aproximada:
-    const offset = 2; // px para adelante / atrás en path para derivada
-    const p1 = path.getPointAtLength(Math.max(0, (t * pathLength) - offset));
-    const p2 = path.getPointAtLength(Math.min(pathLength, (t * pathLength) + offset));
-    const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
     b.style.transform = `translate(-50%,-50%) rotate(${angle}deg)`;
-    // corregir rotación visual de la bombilla (mantenerla vertical)
     const svgWrap = b.querySelector('.svg-wrap');
     if(svgWrap) svgWrap.style.transform = `translateY(4px) rotate(${-angle}deg)`;
   });
 }
 
-// Click en bombilla
+// click en bombilla (revelar bono)
 function onBulbClick(e){
   if(!game.active) return;
   const btn = e.currentTarget;
@@ -157,6 +173,7 @@ function onBulbClick(e){
   if(game.attemptsLeft <= 0) return;
 
   btn.classList.add('revealed');
+  btn.disabled = true;
 
   const label = btn.dataset.bonus || '¡Sorpresa!';
   const value = Number(btn.dataset.value || 0);
@@ -168,14 +185,12 @@ function onBulbClick(e){
   showTooltipOver(btn, `${label} (+${value} pts)`);
   createConfettiAtElement(btn);
 
-  btn.disabled = true;
-
   if(game.attemptsLeft <= 0){
     endRound();
   }
 }
 
-// Tooltip posicionado (como antes)
+// tooltip posicionado encima de la bombilla
 function showTooltipOver(el, text){
   tooltipText.textContent = text;
   tooltip.hidden = false;
@@ -194,10 +209,10 @@ function showTooltipOver(el, text){
   tooltip._timeout = setTimeout(()=> tooltip.hidden = true, 1800);
 }
 
-tooltipClose.addEventListener('click', ()=> tooltip.hidden = true);
-tooltip.addEventListener('pointerdown', (e)=> { if(e.target === tooltip) tooltip.hidden = true; });
+tooltipClose?.addEventListener('click', ()=> tooltip.hidden = true);
+tooltip?.addEventListener('pointerdown', (e) => { if(e.target === tooltip) tooltip.hidden = true; });
 
-// Confetti
+// confetti simple alrededor del elemento
 function createConfettiAtElement(el){
   const rect = el.getBoundingClientRect();
   const centerX = rect.left + rect.width/2;
@@ -219,7 +234,7 @@ function createConfettiAtElement(el){
   }
 }
 
-// Fin de ronda
+// finalizar ronda: mostrar modal
 function endRound(){
   game.active = false;
   nextBtn.hidden = false;
@@ -236,7 +251,7 @@ function updateHUD(){
   roundEl.textContent = game.round;
 }
 
-// Iniciar juego
+// iniciar rondas / reiniciar
 function startGame(){
   game.round += 1;
   game.attemptsLeft = PICKS_PER_ROUND;
@@ -244,17 +259,10 @@ function startGame(){
   startBtn.hidden = true;
   nextBtn.hidden = true;
   resultModal.hidden = true;
-
-  document.querySelectorAll('.bulb').forEach(b=>{
-    b.classList.remove('revealed');
-    b.disabled = false;
-  });
-
   assignBonuses();
   updateHUD();
 }
 
-// Reiniciar
 function resetGame(){
   game = {active:false, score:0, attemptsLeft:PICKS_PER_ROUND, round:0, assignments:[]};
   createBulbs(BULB_COUNT);
@@ -265,25 +273,22 @@ function resetGame(){
   nextBtn.hidden = true;
 }
 
-// Siguiente ronda (mantiene puntuación)
 function nextRound(){
   game.attemptsLeft = PICKS_PER_ROUND;
   game.active = true;
   resultModal.hidden = true;
   nextBtn.hidden = true;
   startBtn.hidden = true;
-  document.querySelectorAll('.bulb').forEach(b=>{
-    if(!b.classList.contains('revealed')) b.disabled = false;
-  });
+  // volver a asignar bonos nuevos
   assignBonuses();
   updateHUD();
 }
 
-// SVG bombilla
-function bulbSVGPath(fillColor){
+// helper: svg bombilla
+function bulbSVG(color){
   return `
     <svg viewBox="0 0 64 80" width="100%" height="100%" aria-hidden="true" focusable="false">
-      <path d="M32 2c10 0 18 8 18 18 0 7-3 11-6 15-3 3-5 7-5 12v4H25v-4c0-5-2-9-5-12-3-4-6-8-6-15C14 10 22 2 32 2z" fill="${fillColor}" stroke="#111" stroke-width="2" />
+      <path d="M32 2c10 0 18 8 18 18 0 7-3 11-6 15-3 3-5 7-5 12v4H25v-4c0-5-2-9-5-12-3-4-6-8-6-15C14 10 22 2 32 2z" fill="${color}" stroke="#111" stroke-width="2" />
       <path d="M24 28c3 4 7 4 12 0" stroke="#222" stroke-width="2" stroke-linecap="round" fill="none"/>
       <circle cx="26" cy="30" r="1.6" fill="#222"/>
       <circle cx="38" cy="30" r="1.6" fill="#222"/>
@@ -291,8 +296,8 @@ function bulbSVGPath(fillColor){
   `;
 }
 
-// helper hex -> rgba
-function hexToRgba(hex, alpha){
+// helper hex->rgba
+function hexToRgba(hex, alpha=0.18){
   const c = hex.replace('#','');
   const r = parseInt(c.substring(0,2),16);
   const g = parseInt(c.substring(2,4),16);
@@ -300,13 +305,13 @@ function hexToRgba(hex, alpha){
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-// Eventos UI
+// eventos UI
 startBtn.addEventListener('click', startGame);
 resetBtn.addEventListener('click', resetGame);
 nextBtn.addEventListener('click', nextRound);
 modalNext.addEventListener('click', () => { resultModal.hidden = true; nextRound(); });
 modalReset.addEventListener('click', () => { resultModal.hidden = true; resetGame(); });
 
-// Init
+// init
 createBulbs(BULB_COUNT);
 resetGame();
