@@ -2,7 +2,6 @@
   --bg:#f3f6fa;
   --string-color:#111;
   --bulb-size:72px;
-  --cap-height:12px;
   --accent:#ffb400;
   --card-radius:12px;
   --font-sans: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
@@ -12,7 +11,7 @@
 html,body{height:100%;margin:0;font-family:var(--font-sans);background:var(--bg);color:#111}
 body{display:flex;align-items:center;justify-content:center;padding:18px}
 
-.stage{width:100%;max-width:1100px;height:620px;position:relative;overflow:hidden;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.7),rgba(250,252,255,0.95));box-shadow:0 14px 60px rgba(8,20,40,0.06);padding:18px}
+.stage{width:100%;max-width:1100px;height:620px;position:relative;overflow:hidden;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.7),rgba(250,252,255,0.95));box-shadow:0 14px 60px rgba(8,20,40,0.06);padding:12px}
 
 /* HUD */
 .hud{display:flex;justify-content:space-between;align-items:center;padding:6px 12px 18px 12px}
@@ -26,11 +25,11 @@ body{display:flex;align-items:center;justify-content:center;padding:18px}
 .btn{background:#fff;border:1px solid rgba(0,0,0,0.06);padding:8px 12px;border-radius:8px;cursor:pointer}
 .btn.primary{background:var(--accent);color:#111;border:none;box-shadow:0 6px 18px rgba(255,180,0,0.18)}
 
-/* SVG wave/Cuerda */
-.wave{position:absolute;left:0;top:92px;width:100%;height:260px;pointer-events:none;z-index:2}
+/* SVG guirnalda */
+.garland-svg{position:absolute;left:0;right:0;top:82px;height:320px;width:100%;pointer-events:none;z-index:2}
 
-/* contenedor absoluto para bombillas */
-.lights{position:absolute;inset:100px 12px 18px 12px;pointer-events:none;z-index:5}
+/* contenedor absoluto para bombillas (coincide con svg) */
+.lights{position:absolute;left:0;right:0;top:82px;height:320px;pointer-events:none;z-index:5}
 
 /* cada bombilla es un botón (accesible) */
 .bulb{
@@ -39,7 +38,7 @@ body{display:flex;align-items:center;justify-content:center;padding:18px}
   width:var(--bulb-size);
   height:var(--bulb-size);
   margin-left:calc(var(--bulb-size)/-2);
-  margin-top:calc(var(--bulb-size)/-2 - 6px);
+  margin-top:calc(var(--bulb-size)/-2);
   pointer-events:auto;
   background:transparent;
   border:0;
@@ -50,18 +49,18 @@ body{display:flex;align-items:center;justify-content:center;padding:18px}
   justify-content:center;
   touch-action:manipulation;
   outline: none;
-  transition:transform 300ms ease, opacity 300ms;
+  transition:transform 260ms ease, opacity 260ms;
 }
 
-/* el cable corto encima de la bombilla */
+/* cable corto encima de la bombilla */
 .bulb::before{
   content:"";
   position:absolute;
-  top:-54px;
+  top:-44px;
   left:50%;
   transform:translateX(-50%);
   width:3px;
-  height:46px;
+  height:36px;
   background:var(--string-color);
   border-radius:2px;
   z-index:6;
@@ -70,8 +69,8 @@ body{display:flex;align-items:center;justify-content:center;padding:18px}
 /* halo o glow circular detrás */
 .bulb .glow{
   position:absolute;
-  width:124%;
-  height:124%;
+  width:120%;
+  height:120%;
   border-radius:50%;
   background:var(--glow-color, rgba(255,213,79,0.22));
   filter: blur(8px);
@@ -80,7 +79,7 @@ body{display:flex;align-items:center;justify-content:center;padding:18px}
   transition:opacity 300ms ease, transform 300ms;
 }
 
-/* la forma de la bombilla (SVG) */
+/* svg lamp */
 .bulb .svg-wrap{
   position:relative;
   width:72%;
@@ -90,7 +89,7 @@ body{display:flex;align-items:center;justify-content:center;padding:18px}
   transition:transform 300ms;
 }
 
-/* capuchón pequeño */
+/* capuchón */
 .bulb .cap{
   position:absolute;
   bottom:10px;
@@ -109,12 +108,12 @@ body{display:flex;align-items:center;justify-content:center;padding:18px}
 .bulb:active{transform:translateY(-4px) scale(.99)}
 .bulb:focus{box-shadow:0 0 0 6px rgba(34,150,243,0.12);border-radius:50%}
 
-/* estado revelado: reducir opacidad y eliminar glow */
-.bulb.revealed{opacity:0.7;cursor:default;transform:scale(0.98)}
+/* estado revelado */
+.bulb.revealed{opacity:0.72;cursor:default;transform:scale(0.98)}
 .bulb.revealed .glow{opacity:0.25;filter:blur(2px)}
 .bulb.revealed .svg-wrap{transform:translateY(2px) scale(.98)}
 
-/* tooltip emergente */
+/* tooltip */
 .tooltip{
   position:absolute;
   z-index:40;
@@ -147,6 +146,6 @@ body{display:flex;align-items:center;justify-content:center;padding:18px}
 /* responsive */
 @media (max-width:720px){
   :root{--bulb-size:56px}
-  .stage{height:720px}
-  .hud{flex-direction:column;align-items:flex-start;gap:8px}
+  .stage{height:760px}
+  .garland-svg, .lights{top:110px;height:420px}
 }
