@@ -1,43 +1,158 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Guirnalda — Luces y bonos</title>
-  <link rel="stylesheet" href="estilo.css" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Guirnalda - aspecto ilustrado</title>
+<style>
+  :root{
+    --bg-dark: #053a2b;
+    --string-color: #222;
+    --bulb-size:72px;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family:var(--font);background:var(--bg-dark);color:#fff}
+  body{display:flex;justify-content:center;padding:24px}
+
+  .stage{width:100%;max-width:1100px;position:relative;padding:12px}
+
+  /* area SVG + overlay */
+  .svg-wrapper{position:relative;width:100%;height:260px}
+  svg.garland{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:1}
+  .lights{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:2}
+
+  /* cada bombilla es botón absoluto (sin rotar el contenedor) */
+  .bulb{
+    position:absolute;
+    width:var(--bulb-size);
+    height:var(--bulb-size);
+    margin-left:calc(var(--bulb-size)/-2);
+    margin-top:calc(var(--bulb-size)/-2);
+    pointer-events:auto;
+    border:0;background:transparent;padding:0;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    touch-action:manipulation;outline:none;
+  }
+
+  /* el dibujo interior (svg) se rotará para seguir tangente */
+  .bulb .art{ width:86%; height:86%; transform-origin:center; display:block; }
+
+  /* capuchón blanco con borde: lo dibujamos dentro del SVG */
+  /* sombreado ligero */
+  .stage .note{color:rgba(255,255,255,0.85);margin-bottom:8px}
+</style>
 </head>
 <body>
-  <main id="stage" class="stage" role="application" aria-label="Guirnalda interactiva">
-    <header class="hud">
-      <h1>Guirnalda — Bonos sorpresa</h1>
-      <p class="hint">Haz clic en una luz para ver su bono</p>
-    </header>
+  <main class="stage" role="main" aria-label="Guirnalda ilustrada">
+    <div class="note">Guirnalda con bombillas colgando (colores arcoíris). Esto es sólo la parte visual.</div>
 
     <div class="svg-wrapper">
-      <svg id="garlandSVG" class="garland-svg" viewBox="0 0 1200 360" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-        <!-- cuerda / guirnalda -->
-        <path id="garlandPath" d="M40,100 C180,20 320,220 460,120 C600,20 740,220 880,120 C980,60 1100,170 1160,120" stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <svg class="garland" viewBox="0 0 1200 260" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <!-- cuerda/guirnalda (edita el path a tu gusto) -->
+        <path id="garlandPath" d="M20,40 C140,10 260,110 380,60 C500,10 620,110 740,60 C860,10 980,110 1180,60"
+              stroke="#111" stroke-width="5" fill="none" stroke-linecap="round" />
       </svg>
 
-      <!-- contenedor overlay para bombillas -->
-      <div id="lights" class="lights" role="list" aria-label="Luces de la guirnalda"></div>
+      <div id="lights" class="lights" role="list" aria-label="Luces"></div>
     </div>
-
-    <!-- modal centrado para mostrar bono -->
-    <div id="modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <div class="modal-card">
-        <h2 id="modal-title">¡Has revelado un bono!</h2>
-        <p id="modal-bonus" class="modal-bonus"></p>
-        <div class="modal-actions">
-          <button id="modal-ok" class="btn">Aceptar</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- confetti layer -->
-    <div id="confetti" class="confetti-layer" aria-hidden="true"></div>
   </main>
 
-  <script src="script.js"></script>
+<script>
+  // Configuración simple
+  const RAINBOW = ['#8e24aa','#1e88e5','#43a047','#fdd835','#fb8c00','#e53935','#ff4081','#ffd54f','#81d4fa'];
+  const BULB_COUNT = 9;
+
+  const svg = document.querySelector('svg.garland');
+  const path = document.getElementById('garlandPath');
+  const lights = document.getElementById('lights');
+
+  // Crea N bombillas (botones) con un SVG interior que contiene cap + círculo + brillo
+  function createBulbs(n){
+    lights.innerHTML = '';
+    for(let i=0;i<n;i++){
+      const btn = document.createElement('button');
+      btn.className = 'bulb';
+      btn.type = 'button';
+      btn.setAttribute('role','listitem');
+      btn.tabIndex = 0;
+
+      // color del arcoíris
+      const color = RAINBOW[i % RAINBOW.length];
+
+      // svg interior: cap (rounded rect) + circle bulb + highlight
+      btn.innerHTML = bulbArtSVG(color);
+
+      // pointer events enabled for the button
+      btn.addEventListener('pointerdown', ()=> {
+        // solo visual por ahora: marcar 'selected' para ver que funciona
+        btn.classList.toggle('selected');
+      });
+
+      lights.appendChild(btn);
+    }
+    positionBulbs();
+    window.addEventListener('resize', positionBulbs);
+  }
+
+  // posiciona cada bombilla sobre el path, con un offset normal para "colgar" debajo
+  function positionBulbs(){
+    const nodes = Array.from(document.querySelectorAll('.bulb'));
+    if(!path || nodes.length===0) return;
+    const L = path.getTotalLength();
+    const svgRect = svg.getBoundingClientRect();
+    // viewBox used to scale coordinates (we used 1200x260)
+    const vb = svg.viewBox.baseVal;
+    const scaleX = svgRect.width / (vb.width || svgRect.width);
+    const scaleY = svgRect.height / (vb.height || svgRect.height);
+
+    nodes.forEach((el, idx) => {
+      const t = (idx+1)/(nodes.length+1); // fraction along path
+      const pos = path.getPointAtLength(t*L);
+
+      // compute tangent -> normal
+      const delta = Math.max(1, L*0.002);
+      const p1 = path.getPointAtLength(Math.max(0, t*L - delta));
+      const p2 = path.getPointAtLength(Math.min(L, t*L + delta));
+      const dx = p2.x - p1.x, dy = p2.y - p1.y;
+      const len = Math.hypot(dx,dy) || 1;
+      const nx = -dy/len, ny = dx/len; // normal unit vector (points "below" based on path slope)
+
+      const offset = 22; // pixels below the string
+      const screenX = svgRect.left + pos.x * scaleX + nx*offset;
+      const screenY = svgRect.top  + pos.y * scaleY + ny*offset;
+
+      // place absolute inside .lights container (which matches svg area)
+      const containerRect = lights.getBoundingClientRect();
+      el.style.left = (screenX - containerRect.left) + 'px';
+      el.style.top  = (screenY - containerRect.top) + 'px';
+
+      // angle of tangent -> rotate interior art so bulb "hangs" vertical relative to path
+      const angle = Math.atan2(dy,dx) * 180/Math.PI;
+      const art = el.querySelector('.art');
+      // rotate inverse so the bulb body visually aligns with gravity (we rotate the art)
+      if(art) art.style.transform = `translateY(4px) rotate(${-angle}deg)`;
+    });
+  }
+
+  // SVG markup for one bulb: cap (rounded rect), small loop, circle + highlight
+  function bulbArtSVG(color){
+    return `
+      <svg class="art" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+        <!-- cap: white rounded rect with black stroke to appear above the string -->
+        <rect x="22" y="4" rx="6" ry="6" width="20" height="10" fill="#fff" stroke="#111" stroke-width="2"/>
+        <!-- small loop/hanger drawn as semicircle (decorative) -->
+        <path d="M32 8 C34 8 36 10 36 12" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round"/>
+        <!-- bulb circle -->
+        <circle cx="32" cy="36" r="16" fill="${color}" stroke="#111" stroke-width="3" />
+        <!-- highlight -->
+        <path d="M42 28 C40 24 34 22 30 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    `;
+  }
+
+  // init
+  createBulbs(BULB_COUNT);
+</script>
 </body>
 </html>
