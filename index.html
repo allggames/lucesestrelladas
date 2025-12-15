@@ -1,92 +1,17 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Guirnalda — Luces interactivas</title>
-<style>
-  :root{
-    --bg-dark: #053a2b;
-    --string-color: #fff;
-    --bulb-size:96px;
-    --font: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
-  }
-
-  *{box-sizing:border-box}
-  html,body{height:100%;margin:0;font-family:var(--font);background:var(--bg-dark);color:#fff}
-  body{display:flex;justify-content:center;padding:18px}
-
-  .stage{width:100%;max-width:1200px;position:relative;padding:12px}
-
-  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-  .title{font-size:18px}
-  .controls{display:flex;gap:8px}
-  .btn{background:#0b6b4a;color:#fff;border:0;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:700}
-
-  .svg-wrapper{position:relative;width:100%;height:360px;overflow:visible}
-  svg.garland{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:1}
-  .lights{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:auto;z-index:2}
-
-  .bulb{
-    position:absolute;
-    width:var(--bulb-size);
-    height:var(--bulb-size);
-    margin-left:calc(var(--bulb-size)/-2);
-    margin-top:calc(var(--bulb-size)/-2);
-    pointer-events:auto;
-    border:0;background:transparent;padding:0;cursor:pointer;
-    display:flex;align-items:center;justify-content:center;
-    touch-action:manipulation;outline:none;border-radius:50%;
-    transition:transform .18s ease, opacity .18s ease;
-  }
-  .bulb:focus{box-shadow:0 0 0 8px rgba(255,255,255,0.06);border-radius:50%}
-
-  .bulb::before{
-    content:"";
-    position:absolute;
-    top:calc(-1 * var(--bulb-size) * 0.56);
-    left:50%;transform:translateX(-50%);
-    width:4px;height:calc(var(--bulb-size) * 0.48);background:var(--string-color);border-radius:2px;z-index:6;
-  }
-
-  .bulb .glow{
-    position:absolute;width:140%;height:140%;border-radius:50%;filter:blur(14px);z-index:1;transform:translateY(6px);
-    transition:opacity .18s ease, transform .18s ease;
-  }
-  .bulb .art{ width:86%; height:86%; transform-origin:center; display:block; z-index:7; transition:transform .18s ease }
-  .bulb .cap{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:40%;height:12%;background:linear-gradient(180deg,#fff,#ddd);border-radius:4px;z-index:8}
-
-  .bulb:hover{transform:translateY(-8px) scale(1.02)}
-  .bulb.revealed{opacity:1;pointer-events:none;transform:scale(1.06)}
-  .bulb.revealed .glow{opacity:0.6}
-
-  .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:90}
-  .modal.show{display:flex}
-  .modal-card{width:360px;max-width:92%;padding:18px;border-radius:12px;background:#fff;color:#0b3b2c;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,0.28)}
-  .modal-title{margin:0;font-size:18px}
-  .modal-sub{color:#0b3b2c;margin:8px 0 0}
-  .modal-bonus{font-size:22px;font-weight:800;margin:10px 0;color:#084a33}
-
-  .confetti-layer{position:fixed;inset:0;pointer-events:none;z-index:95}
-  .confetti{position:absolute;width:8px;height:12px;border-radius:2px;animation:fall 1200ms forwards cubic-bezier(.2,.8,.25,1)}
-  @keyframes fall{0%{opacity:1;transform:translateY(-10px) rotate(0deg)}100%{opacity:1;transform:translateY(160vh) rotate(540deg)}}
-
-  @media (max-width:780px){
-    :root{--bulb-size:76px}
-    .svg-wrapper{height:320px}
-  }
-  @media (max-width:440px){
-    :root{--bulb-size:64px}
-    .svg-wrapper{height:280px}
-  }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Guirnalda — Luces interactivas</title>
+  <link rel="stylesheet" href="estilo.css" />
 </head>
 <body>
   <main class="stage" role="application" aria-label="Guirnalda interactiva">
     <div class="topbar">
       <div>
         <div class="title">Guirnalda — Bonos sorpresa</div>
-        <div style="font-size:13px;color:rgba(255,255,255,0.85)">Haz clic en UNA luz para revelar su bono</div>
+        <div class="subtitle">Haz clic en UNA luz para revelar su bono</div>
       </div>
       <div class="controls">
         <button id="resetBtn" class="btn">Reiniciar</button>
@@ -98,11 +23,13 @@
         <path id="garlandPath" d="M20,60 C160,10 300,220 440,120 C580,20 720,220 860,120 C980,50 1060,170 1180,120"
               stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round" />
       </svg>
-      <div id="lights" class="lights" role="list" aria-label="Luces"></div>
+
+      <div id="lights" class="lights" role="list" aria-label="Luces de la guirnalda"></div>
     </div>
   </main>
 
-  <div id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <!-- modal -->
+  <div id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-hidden="true">
     <div class="modal-card" role="document">
       <h2 id="modal-title" class="modal-title">¡Felicidades!</h2>
       <p class="modal-sub">Te ganaste un bono de</p>
@@ -115,200 +42,6 @@
 
   <div id="confetti" class="confetti-layer" aria-hidden="true"></div>
 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  try {
-    const BONUS = [
-      "150% de bono","100% de bono","200% de bono","50% de bono","250% de bono",
-      "75% de bono","300% de bono","30% de bono","10% de bono"
-    ];
-    const RAINBOW = ['#8e24aa','#1e88e5','#43a047','#fdd835','#fb8c00','#e53935','#ff4081','#ffd54f','#81d4fa'];
-    const BULB_COUNT = 9;
-
-    const svg = document.getElementById('garlandSVG');
-    const path = document.getElementById('garlandPath');
-    const lights = document.getElementById('lights');
-    const modal = document.getElementById('modal');
-    const modalBonus = document.getElementById('modal-bonus');
-    const modalOk = document.getElementById('modal-ok');
-    const resetBtn = document.getElementById('resetBtn');
-    const confettiLayer = document.getElementById('confetti');
-
-    if(!svg || !path || !lights) {
-      console.error('Elemento SVG/path/lights no encontrado en el DOM.');
-      return;
-    }
-
-    let chosen = false;
-
-    function shuffle(arr){
-      const a = arr.slice();
-      for(let i=a.length-1;i>0;i--){
-        const j = Math.floor(Math.random()*(i+1));
-        [a[i], a[j]] = [a[j], a[i]];
-      }
-      return a;
-    }
-    function hexToRgba(hex, a=0.28){
-      const c = hex.replace('#','');
-      const r = parseInt(c.substring(0,2),16);
-      const g = parseInt(c.substring(2,4),16);
-      const b = parseInt(c.substring(4,6),16);
-      return `rgba(${r},${g},${b},${a})`;
-    }
-
-    function bulbSVG(color){
-      return `
-        <svg class="inner" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-          <rect x="20" y="4" rx="6" ry="6" width="24" height="12" fill="#fff" stroke="#111" stroke-width="2"/>
-          <path d="M32 10 C34 10 36 12 36 14" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round"/>
-          <circle cx="32" cy="38" r="18" fill="${color}" stroke="#111" stroke-width="3" />
-          <path d="M45 29 C42 24 36 22 32 25" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-      `;
-    }
-
-    function createBulbs(n){
-      lights.innerHTML = '';
-      for(let i=0;i<n;i++){
-        const btn = document.createElement('button');
-        btn.className = 'bulb';
-        btn.type = 'button';
-        btn.setAttribute('role','listitem');
-        btn.tabIndex = 0;
-
-        const glow = document.createElement('div'); glow.className = 'glow'; btn.appendChild(glow);
-        const art = document.createElement('div'); art.className = 'art'; art.innerHTML = bulbSVG(RAINBOW[i % RAINBOW.length]); btn.appendChild(art);
-        const cap = document.createElement('div'); cap.className = 'cap'; btn.appendChild(cap);
-
-        btn.addEventListener('click', onBulbClick);
-        btn.addEventListener('keydown', (e) => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onBulbClick({ currentTarget: btn }); } });
-
-        lights.appendChild(btn);
-      }
-      positionBulbs();
-      window.removeEventListener('resize', positionBulbs);
-      window.addEventListener('resize', positionBulbs);
-    }
-
-    function assignBonuses(){
-      const picks = shuffle(BONUS).slice(0, BULB_COUNT);
-      const bulbs = document.querySelectorAll('.bulb');
-      bulbs.forEach((b, i) => {
-        const pick = picks[i] || BONUS[i % BONUS.length];
-        const color = RAINBOW[i % RAINBOW.length];
-        b.dataset.bonus = pick;
-        b.querySelector('.glow').style.background = hexToRgba(color, 0.36);
-        b.querySelector('.art').innerHTML = bulbSVG(color);
-        b.classList.remove('revealed');
-        b.disabled = false;
-      });
-      chosen = false;
-      console.log('Bonos asignados:', picks);
-    }
-
-    function positionBulbs(){
-      const nodes = Array.from(document.querySelectorAll('.bulb'));
-      if(!path || !svg || nodes.length === 0) return;
-
-      const L = path.getTotalLength();
-      const svgRect = svg.getBoundingClientRect();
-      const vb = svg.viewBox.baseVal;
-      const scaleX = svgRect.width / (vb.width || svgRect.width);
-      const scaleY = svgRect.height / (vb.height || svgRect.height);
-
-      nodes.forEach((el, idx) => {
-        const t = (idx + 1) / (nodes.length + 1);
-        const point = path.getPointAtLength(t * L);
-
-        const delta = Math.max(1, L * 0.002);
-        const p1 = path.getPointAtLength(Math.max(0, t*L - delta));
-        const p2 = path.getPointAtLength(Math.min(L, t*L + delta));
-        const dx = p2.x - p1.x, dy = p2.y - p1.y;
-        const len = Math.hypot(dx, dy) || 1;
-        const nx = -dy / len, ny = dx / len;
-
-        const cssBulb = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bulb-size')) || 96;
-        const offset = Math.max(cssBulb * 0.22, 20);
-
-        const screenX = svgRect.left + point.x * scaleX + nx * offset;
-        const screenY = svgRect.top  + point.y * scaleY + ny * offset;
-
-        const containerRect = lights.getBoundingClientRect();
-        el.style.left = (screenX - containerRect.left) + 'px';
-        el.style.top  = (screenY - containerRect.top) + 'px';
-
-        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-        const art = el.querySelector('.art');
-        if(art) art.style.transform = `translateY(6px) rotate(${-angle}deg)`;
-      });
-    }
-
-    function onBulbClick(e){
-      if(chosen) { console.log('Ya se eligió una bombilla esta tanda.'); return; }
-      const btn = e.currentTarget;
-      if(!btn || btn.classList.contains('revealed')) return;
-
-      btn.classList.add('revealed');
-      btn.disabled = true;
-      document.querySelectorAll('.bulb').forEach(b => { if(b !== btn) b.disabled = true; });
-
-      const bonus = btn.dataset.bonus || '¡Sorpresa!';
-      chosen = true;
-
-      modalBonus.textContent = bonus;
-      modal.classList.add('show');
-      modal.setAttribute('aria-hidden','false');
-      modal.querySelector('.modal-card')?.focus?.();
-
-      createConfettiAtElement(btn);
-
-      console.log('Bombilla elegida:', bonus);
-    }
-
-    function createConfettiAtElement(el){
-      const rect = el.getBoundingClientRect();
-      const cx = rect.left + rect.width/2;
-      const cy = rect.top + rect.height/2;
-      const colors = ['#ff3b30','#ff9500','#ffcc00','#34c759','#5ac8fa','#5856d6','#ff2d55'];
-      for(let i=0;i<28;i++){
-        const p = document.createElement('div');
-        p.className = 'confetti';
-        p.style.left = (cx + (Math.random()-0.5)*140) + 'px';
-        p.style.top = (cy + (Math.random()-0.5)*100) + 'px';
-        p.style.background = colors[Math.floor(Math.random()*colors.length)];
-        p.style.width = (6 + Math.random()*10) + 'px';
-        p.style.height = (8 + Math.random()*12) + 'px';
-        p.style.borderRadius = (Math.random()>0.5 ? '2px' : '50%');
-        p.style.animationDelay = (Math.random()*200) + 'ms';
-        confettiLayer.appendChild(p);
-        setTimeout(()=> p.remove(), 1600 + Math.random()*800);
-      }
-    }
-
-    modalOk.addEventListener('click', () => {
-      modal.classList.remove('show');
-      modal.setAttribute('aria-hidden','true');
-    });
-
-    resetBtn.addEventListener('click', () => {
-      createBulbs(BULB_COUNT);
-      assignBonuses();
-      positionBulbs();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-
-    createBulbs(BULB_COUNT);
-    assignBonuses();
-    positionBulbs();
-
-    window.resetTanda = () => { createBulbs(BULB_COUNT); assignBonuses(); positionBulbs(); };
-
-    console.log('Guirnalda inicializada.');
-  } catch (err) {
-    console.error('Error inicializando guirnalda:', err);
-  }
-});
-</script>
+  <script src="script.js" defer></script>
 </body>
 </html>
