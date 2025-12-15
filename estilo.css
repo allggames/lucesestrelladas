@@ -8,10 +8,38 @@
 /* Reset / base */
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;font-family:var(--font);background:linear-gradient(180deg,#053a2b 0%, #072f25 50%, #03241e 100%);color:#fff}
-body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px;overflow-x:hidden}
+
+/* Capa de árboles (fondo decorativo) */
+.trees-layer{
+  position:fixed;
+  inset:0;
+  z-index:0; /* detrás de todo */
+  pointer-events:none;
+  overflow:hidden;
+}
+.tree{
+  position:absolute;
+  pointer-events:none;
+  user-select:none;
+  will-change:transform, opacity;
+  opacity:0.85;
+  filter:drop-shadow(0 6px 8px rgba(0,0,0,0.35));
+  transform-origin:center;
+  transition:transform 600ms ease, opacity 400ms ease;
+}
+/* ligero movimiento vertical */
+.tree.animate{
+  animation: floatTiny 6s ease-in-out infinite;
+}
+@keyframes floatTiny{
+  0%{ transform: translateY(0) rotate(var(--rot)); }
+  50%{ transform: translateY(-6px) rotate(calc(var(--rot) + 2deg)); }
+  100%{ transform: translateY(0) rotate(var(--rot)); }
+}
 
 /* Stage centra todo */
-.stage{width:100%;max-width:1100px;position:relative;padding:18px;display:flex;flex-direction:column;align-items:center;gap:18px}
+.stage{width:100%;max-width:1100px;position:relative;padding:18px;display:flex;flex-direction:column;align-items:center;gap:18px;z-index:2}
 
 /* Header / título */
 .topbar{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:6px}
@@ -117,8 +145,6 @@ svg.garland{position:relative; width:92%; height:100%; pointer-events:none; z-in
   letter-spacing:1px;
   font-size:15px;
 }
-
-/* pequeño check al inicio del botón usando pseudo-elemento */
 .modal .btn::before{
   content: "✓";
   display:inline-flex;
@@ -133,14 +159,12 @@ svg.garland{position:relative; width:92%; height:100%; pointer-events:none; z-in
   font-size:14px;
   transform:translateY(-1px);
 }
-
-/* hover & focus */
 .modal .btn:hover{ transform:translateY(-3px) scale(1.02); box-shadow: 0 14px 36px rgba(12,60,44,0.36); }
 .modal .btn:active{ transform:translateY(0); }
 .modal .btn:focus{ outline: 3px solid rgba(122,223,155,0.28); outline-offset:3px; }
 
 /* Modal */
-.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:90}
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:40}
 .modal.show{display:flex}
 .modal-card{width:360px;max-width:92%;padding:18px;border-radius:12px;background:#fff;color:#0b3b2c;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,0.28)}
 .modal-title{margin:0;font-size:18px}
