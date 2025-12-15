@@ -1,5 +1,5 @@
-// script.js — adaptado para móvil: menos árboles, menos confetti, sin animaciones pesadas en pantallas pequeñas
-// Mantiene: bloqueo diario, bonos ponderados (100/150/200), guirnalda y posicionamiento.
+// script.js — responsive fixes para móviles: mejor posicionamiento, menos árboles, trees en márgenes,
+// recalculo tras fonts/layout y en orientationchange.
 
 document.addEventListener('DOMContentLoaded', () => {
   try {
@@ -49,7 +49,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return st && st.date === todayStr();
     }
 
-    // utils
     function shuffle(arr){
       const a = arr.slice();
       for(let i=a.length-1;i>0;i--){
@@ -108,9 +107,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         lights.appendChild(btn);
       }
-      positionBulbs();
-      window.removeEventListener('resize', positionBulbs);
-      window.addEventListener('resize', positionBulbs);
+      // position after small delay to let layout stabilize on mobile
+      positionBulbsDeferred();
+      window.removeEventListener('resize', positionBulbsDeferred);
+      window.addEventListener('resize', positionBulbsDeferred);
     }
 
     function assignBonuses(){
@@ -129,6 +129,14 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('Bonos asignados (ponderados):', Array.from(document.querySelectorAll('.bulb')).map(b=>b.dataset.bonus));
     }
 
+    // position with deferred rAF + timeout
+    function positionBulbsDeferred(){
+      window.requestAnimationFrame(() => {
+        // small delay so fonts/layout settle on mobile
+        setTimeout(() => positionBulbs(), 60);
+      });
+    }
+
     function positionBulbs(){
       const nodes = Array.from(document.querySelectorAll('.bulb'));
       if(!path || !svg || nodes.length === 0) return;
@@ -139,6 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const scaleX = svgRect.width / (vb.width || svgRect.width);
       const scaleY = svgRect.height / (vb.height || svgRect.height);
 
+      const isMobile = (window.innerWidth || document.documentElement.clientWidth) < 520;
       nodes.forEach((el, idx) => {
         const t = (idx + 1) / (nodes.length + 1);
         const point = path.getPointAtLength(t * L);
@@ -151,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const nx = -dy / len, ny = dx / len;
 
         const cssBulb = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bulb-size')) || 96;
-        const offset = Math.max(cssBulb * 0.22, 18); // smaller offset for mobile
+        const offset = Math.max(cssBulb * (isMobile ? 0.16 : 0.22), isMobile ? 12 : 20);
 
         const screenX = svgRect.left + point.x * scaleX + nx * offset;
         const screenY = svgRect.top  + point.y * scaleY + ny * offset;
@@ -202,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
       modal.setAttribute('aria-hidden','false');
     }
 
-    // ---------- confetti (más ligero en móvil) ----------
+    // ---------- confetti (lighter on mobile) ----------
     function createConfettiAtElement(el){
       const rect = el.getBoundingClientRect();
       const cx = rect.left + rect.width/2;
@@ -227,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // ---------- trees (density & mobile behavior) ----------
+    // ---------- trees (avoid center on mobile; reduce count; disable heavy anims) ----------
     function createTrees(count = 40){
       if(!treesLayer) return;
       treesLayer.innerHTML = '';
@@ -239,16 +248,26 @@ document.addEventListener('DOMContentLoaded', () => {
         el.textContent = '🎄';
         const size = Math.floor((isVerySmall ? 10 : 14) + Math.random()* (isVerySmall ? 28 : 50));
         el.style.fontSize = size + 'px';
-        const left = Math.random()*100;
-        const top = Math.random()*100;
+
+        // position: avoid center stripe (20% - 80%) on mobile to not overlap guirnalda
+        let left = Math.random()*100;
+        let top;
+        if(isVerySmall){
+          // on very small screens place trees mostly top or bottom margins
+          if(Math.random() < 0.5) top = 6 + Math.random() * 18;      // top 6-24%
+          else top = 74 + Math.random() * 20;                     // bottom 74-94%
+        } else {
+          // allowing full spread on larger screens
+          top = Math.random()*100;
+        }
         el.style.left = left + '%';
         el.style.top = top + '%';
+
         const rot = (Math.random()*40 - 20).toFixed(1) + 'deg';
         el.style.setProperty('--rot', rot);
         el.style.opacity = (isVerySmall ? (0.25 + Math.random()*0.5) : (0.35 + Math.random()*0.6)).toFixed(2);
         if(size > 36) el.style.filter = 'drop-shadow(0 10px 12px rgba(0,0,0,0.45))';
-        // animate only on larger viewports
-        if(!isVerySmall) el.classList.add('animate');
+        if(!isVerySmall) el.classList.add('animate'); // disable animate on very small devices
         treesLayer.appendChild(el);
       }
     }
@@ -256,13 +275,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let treesResizeTimer = null;
     function refreshTrees(){
       const vw = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
-      // tuned for mobile: fewer trees in smaller screens
       const base = vw > 1400 ? 90 : vw > 1200 ? 70 : vw > 900 ? 50 : vw > 600 ? 32 : 14;
       createTrees(base);
     }
+
     window.addEventListener('resize', () => {
       clearTimeout(treesResizeTimer);
-      treesResizeTimer = setTimeout(refreshTrees, 220);
+      treesResizeTimer = setTimeout(() => { refreshTrees(); positionBulbsDeferred(); }, 220);
+    });
+    // orientation change: recalc quickly
+    window.addEventListener('orientationchange', () => {
+      setTimeout(()=> { refreshTrees(); positionBulbsDeferred(); }, 200);
     });
 
     // modal handler
@@ -275,9 +298,18 @@ document.addEventListener('DOMContentLoaded', () => {
       if(sub) sub.textContent = 'Te ganaste un bono de';
     });
 
-    // init
+    // ---------- init ----------
     createBulbs(BULB_COUNT);
     assignBonuses();
+
+    // ensure fonts/layout settled before initial position on mobile
+    if (document.fonts) {
+      document.fonts.ready.then(() => {
+        positionBulbsDeferred();
+      }).catch(()=> positionBulbsDeferred());
+    } else {
+      positionBulbsDeferred();
+    }
 
     refreshTrees();
 
@@ -285,11 +317,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if(stored && stored.date === todayStr()){
       document.querySelectorAll('.bulb').forEach(b => b.disabled = true);
       showStoredModal(stored.bonus);
-    } else {
-      positionBulbs();
     }
 
-    console.log('Guirnalda inicializada (responsive).');
+    console.log('Guirnalda inicializada (mejoras mobile).');
   } catch (err) {
     console.error('Error inicializando guirnalda:', err);
   }
