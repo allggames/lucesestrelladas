@@ -9,9 +9,9 @@
 
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;font-family:var(--font-sans);background:var(--bg);color:#111}
-body{display:flex;align-items:center;justify-content:center;padding:18px}
+body{display:flex;align-items:flex-start;justify-content:center;padding:18px}
 
-.stage{width:100%;max-width:1100px;height:620px;position:relative;overflow:hidden;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.7),rgba(250,252,255,0.95));box-shadow:0 14px 60px rgba(8,20,40,0.06);padding:12px}
+.stage{width:100%;max-width:1100px;position:relative;overflow:visible;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.7),rgba(250,252,255,0.95));box-shadow:0 14px 60px rgba(8,20,40,0.06);padding:12px}
 
 /* HUD */
 .hud{display:flex;justify-content:space-between;align-items:center;padding:6px 12px 18px 12px}
@@ -25,15 +25,17 @@ body{display:flex;align-items:center;justify-content:center;padding:18px}
 .btn{background:#fff;border:1px solid rgba(0,0,0,0.06);padding:8px 12px;border-radius:8px;cursor:pointer}
 .btn.primary{background:var(--accent);color:#111;border:none;box-shadow:0 6px 18px rgba(255,180,0,0.18)}
 
-/* SVG guirnalda */
-.garland-svg{position:absolute;left:0;right:0;top:82px;height:320px;width:100%;pointer-events:none;z-index:2}
+/* wrapper que contiene SVG y overlay con luces */
+.svg-wrapper{position:relative;width:100%;height:360px;overflow:visible}
+.garland-svg{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:2}
 
 /* contenedor absoluto para bombillas (coincide con svg) */
-.lights{position:absolute;left:0;right:0;top:82px;height:320px;pointer-events:none;z-index:5}
+.lights{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:5}
 
 /* cada bombilla es un botón (accesible) */
 .bulb{
   --color: #ffd54f;
+  --glow: rgba(255,213,79,0.18);
   position:absolute;
   width:var(--bulb-size);
   height:var(--bulb-size);
@@ -72,14 +74,14 @@ body{display:flex;align-items:center;justify-content:center;padding:18px}
   width:120%;
   height:120%;
   border-radius:50%;
-  background:var(--glow-color, rgba(255,213,79,0.22));
+  background:var(--glow, rgba(255,213,79,0.18));
   filter: blur(8px);
-  z-index:3;
+  z-index:1;
   transform:translateY(2px);
   transition:opacity 300ms ease, transform 300ms;
 }
 
-/* svg lamp */
+/* la forma de la bombilla (SVG) */
 .bulb .svg-wrap{
   position:relative;
   width:72%;
@@ -89,7 +91,7 @@ body{display:flex;align-items:center;justify-content:center;padding:18px}
   transition:transform 300ms;
 }
 
-/* capuchón */
+/* capuchón pequeño */
 .bulb .cap{
   position:absolute;
   bottom:10px;
@@ -108,27 +110,16 @@ body{display:flex;align-items:center;justify-content:center;padding:18px}
 .bulb:active{transform:translateY(-4px) scale(.99)}
 .bulb:focus{box-shadow:0 0 0 6px rgba(34,150,243,0.12);border-radius:50%}
 
-/* estado revelado */
+/* estado revelado: reducir opacidad y eliminar glow */
 .bulb.revealed{opacity:0.72;cursor:default;transform:scale(0.98)}
 .bulb.revealed .glow{opacity:0.25;filter:blur(2px)}
 .bulb.revealed .svg-wrap{transform:translateY(2px) scale(.98)}
 
 /* tooltip */
-.tooltip{
-  position:absolute;
-  z-index:40;
-  pointer-events:auto;
-  transform:translate(-50%,-120%);
-}
+.tooltip{position:absolute;z-index:40;pointer-events:auto;transform:translate(-50%,-120%)}
 .tooltip-inner{
-  background:#fff;
-  padding:10px 12px;
-  border-radius:12px;
-  box-shadow:0 14px 40px rgba(8,20,40,0.16);
-  display:flex;
-  align-items:center;
-  gap:12px;
-  min-width:120px;
+  background:#fff;padding:10px 12px;border-radius:12px;box-shadow:0 14px 40px rgba(8,20,40,0.16);
+  display:flex;align-items:center;gap:12px;min-width:140px;
 }
 .tooltip-text{font-weight:800;font-size:16px;color:#111}
 .tooltip-close{margin-left:auto;background:transparent;border:0;font-size:16px;cursor:pointer}
@@ -139,13 +130,12 @@ body{display:flex;align-items:center;justify-content:center;padding:18px}
 .modal-actions{display:flex;gap:12px;margin-top:12px;justify-content:center}
 
 /* confetti */
-.confetti-layer{position:absolute;inset:0;pointer-events:none;z-index:30}
+.confetti-layer{position:fixed;inset:0;pointer-events:none;z-index:70}
 .confetti{position:absolute;width:8px;height:12px;border-radius:2px;transform:translateY(-10px) rotate(0deg);animation:fall 1200ms forwards cubic-bezier(.2,.8,.25,1)}
 @keyframes fall{0%{opacity:1;transform:translateY(-10px) rotate(0deg)}100%{opacity:1;transform:translateY(160vh) rotate(540deg)}}
 
 /* responsive */
 @media (max-width:720px){
   :root{--bulb-size:56px}
-  .stage{height:760px}
-  .garland-svg, .lights{top:110px;height:420px}
+  .svg-wrapper{height:300px}
 }
