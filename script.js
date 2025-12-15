@@ -1,13 +1,19 @@
 // script.js — una elección por dispositivo por día (localStorage)
 // + capa decorativa de árboles 🎄 aleatorios en el fondo
+// Modificación: los bonos ahora son 100%, 150% y 200% con probabilidades ponderadas
+// (100% y 150% son más probables que 200%).
 
 document.addEventListener('DOMContentLoaded', () => {
   try {
     const STORAGE_KEY = 'guirnalda.choice.v1';
-    const BONUS = [
-      "150% de bono","100% de bono","200% de bono","50% de bono","250% de bono",
-      "75% de bono","300% de bono","30% de bono","10% de bono"
+
+    // BONOS y probabilidades (suman 1)
+    const BONUSES = [
+      { label: "100% de bono", weight: 0.50 }, // 50% prob
+      { label: "150% de bono", weight: 0.35 }, // 35% prob
+      { label: "200% de bono", weight: 0.15 }  // 15% prob
     ];
+
     const RAINBOW = ['#8e24aa','#1e88e5','#43a047','#fdd835','#fb8c00','#e53935','#ff4081','#ffd54f','#81d4fa'];
     const BULB_COUNT = 9;
 
@@ -75,6 +81,21 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
+    // Weighted random chooser returns label string
+    function weightedPick(bonuses) {
+      // build cumulative array
+      let sum = 0;
+      const cumulative = bonuses.map(b => {
+        sum += b.weight;
+        return { label: b.label, cum: sum };
+      });
+      const r = Math.random() * sum;
+      for (let i = 0; i < cumulative.length; i++) {
+        if (r <= cumulative[i].cum) return cumulative[i].label;
+      }
+      return cumulative[cumulative.length - 1].label;
+    }
+
     // ---------- crear y posicionar bombillas ----------
     function createBulbs(n){
       lights.innerHTML = '';
@@ -99,11 +120,11 @@ document.addEventListener('DOMContentLoaded', () => {
       window.addEventListener('resize', positionBulbs);
     }
 
+    // Assign bonuses using weighted random per bulb
     function assignBonuses(){
-      const picks = shuffle(BONUS).slice(0, BULB_COUNT);
       const bulbs = document.querySelectorAll('.bulb');
       bulbs.forEach((b, i) => {
-        const pick = picks[i] || BONUS[i % BONUS.length];
+        const pick = weightedPick(BONUSES);
         const color = RAINBOW[i % RAINBOW.length];
         b.dataset.bonus = pick;
         const glow = b.querySelector('.glow');
@@ -113,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
         b.classList.remove('revealed');
         b.disabled = false;
       });
-      console.log('Bonos asignados:', picks);
+      console.log('Bonos asignados (ponderados):', Array.from(bulbs).map(b=>b.dataset.bonus));
     }
 
     function positionBulbs(){
@@ -211,39 +232,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ---------- árboles decorativos (🎄) ----------
-    // crea N árboles con posición/escala/rot aleatoria dentro del viewport
     function createTrees(count = 24){
       if(!treesLayer) return;
       treesLayer.innerHTML = '';
-      const vw = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
-      const vh = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
       for(let i=0;i<count;i++){
         const el = document.createElement('div');
         el.className = 'tree animate';
-        // emoji tree
         el.textContent = '🎄';
-        // random size between 18px and 48px (scaled by viewport)
         const size = Math.floor(14 + Math.random()*36);
         el.style.fontSize = size + 'px';
-        // random position (use % for responsiveness)
         const left = Math.random()*100;
         const top = Math.random()*100;
         el.style.left = left + '%';
         el.style.top = top + '%';
-        // small random rotation
         const rot = (Math.random()*40 - 20).toFixed(1) + 'deg';
         el.style.setProperty('--rot', rot);
-        // slight opacity and layering
         el.style.opacity = (0.45 + Math.random()*0.5).toFixed(2);
-        // small blur/depth for larger trees
         if(size > 36) el.style.filter = 'drop-shadow(0 10px 12px rgba(0,0,0,0.45))';
         treesLayer.appendChild(el);
       }
     }
-    // reposition: re-create or adjust trees on resize for better spread
     let treesResizeTimer = null;
     function refreshTrees(){
-      // recreate with a count proportional to viewport width, capped
       const vw = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
       const base = vw > 1200 ? 30 : vw > 900 ? 22 : vw > 600 ? 16 : 10;
       createTrees(base);
@@ -263,23 +273,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if(sub) sub.textContent = 'Te ganaste un bono de';
     });
 
-    // ---------- storage helpers ----------
-    function getStoredChoice(){
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if(!raw) return null;
-        return JSON.parse(raw);
-      } catch(e){ return null; }
-    }
-
-    // note: setStoredChoice function defined earlier; keep the same wrapper here for safety
-    function setStoredChoice(bonus){
-      try {
-        const item = { bonus, date: todayStr(), ts: Date.now() };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(item));
-      } catch(e){ /* ignore */ }
-    }
-
     // ---------- init ----------
     createBulbs(BULB_COUNT);
     assignBonuses();
@@ -295,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
       positionBulbs();
     }
 
-    console.log('Guirnalda inicializada con bloqueo diario y árboles decorativos.');
+    console.log('Guirnalda inicializada con bloqueo diario y bonos ponderados.');
   } catch (err) {
     console.error('Error inicializando guirnalda:', err);
   }
