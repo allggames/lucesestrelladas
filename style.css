@@ -13,7 +13,6 @@ body{display:flex;justify-content:center;padding:18px}
 
 .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .title{font-size:18px}
-.controls{display:flex;gap:8px}
 .btn{background:#0b6b4a;color:#fff;border:0;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:700}
 
 .svg-wrapper{position:relative;width:100%;height:360px;overflow:visible}
