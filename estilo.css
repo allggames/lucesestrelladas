@@ -233,17 +233,3 @@ svg.garland{position:relative; width:92%; height:100%; pointer-events:none; z-in
   .tree.animate{ animation: none; } /* no float animation in very small devices for perf */
 }
 
-/* Ocultar palitos blancos (hangers) si existen */
-line.hanger,
-.hanger {
-  display: none !important;
-}
-
-/* Ocultar la "tapa" blanca abajo de cada bombilla (elemento .cap) */
-.bulb .cap {
-  display: none !important;
-}
-
-/* Asegurar que el botón reciba clicks y el SVG interior no bloquee eventos */
-.bulb { pointer-events: auto; }
-.bulb .art svg { pointer-events: none; }
