@@ -1,6 +1,6 @@
-// script.js — coloca bombillas DENTRO del SVG usando <g> + <foreignObject>
-// Esto mantiene la alineación correcta aun cuando el SVG se escale/centre.
-// Mantiene bloqueo diario, bonos ponderados, árboles decorativos y responsive.
+// script.js — añade hangers (palitos blancos) que sujetan cada bombilla sobre la línea.
+// Coloca hangers como elementos <line> en SVG y calcula el extremo superior justo encima de la bombilla.
+// Mantiene bloqueo diario, bonos ponderados, árboles decorativos y comportamiento responsive.
 
 document.addEventListener('DOMContentLoaded', () => {
   try {
@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const svg = document.getElementById('garlandSVG');
     const path = document.getElementById('garlandPath');
-    const lights = document.getElementById('lights'); // still used for fallback, but primary is inside SVG
+    const lights = document.getElementById('lights'); // fallback overlay
     const modal = document.getElementById('modal');
     const modalBonus = document.getElementById('modal-bonus');
     const modalOk = document.getElementById('modal-ok');
@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // ----- helpers -----
+    // ---------- helpers ----------
     const todayStr = () => {
       const d = new Date();
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -36,7 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function getStoredChoice(){ try { const raw = localStorage.getItem(STORAGE_KEY); if(!raw) return null; return JSON.parse(raw); } catch(e){ return null; } }
     function setStoredChoice(bonus){ try { const item = { bonus, date: todayStr(), ts: Date.now() }; localStorage.setItem(STORAGE_KEY, JSON.stringify(item)); } catch(e){ } }
     function hasChosenToday(){ const st = getStoredChoice(); return st && st.date === todayStr(); }
-
     function shuffle(arr){ const a = arr.slice(); for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
     function hexToRgba(hex, a=0.28){ const c = hex.replace('#',''); const r = parseInt(c.substring(0,2),16); const g = parseInt(c.substring(2,4),16); const b = parseInt(c.substring(4,6),16); return `rgba(${r},${g},${b},${a})`; }
     function bulbSVG(color){ return `
@@ -47,39 +46,46 @@ document.addEventListener('DOMContentLoaded', () => {
           <path d="M45 29 C42 24 36 22 32 25" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2" stroke-linecap="round"/>
         </svg>
       `; }
+    function weightedPick(bonuses) { let sum = 0; const cumulative = bonuses.map(b => { sum += b.weight; return { label: b.label, cum: sum }; }); const r = Math.random() * sum; for (let i = 0; i < cumulative.length; i++) if (r <= cumulative[i].cum) return cumulative[i].label; return cumulative[cumulative.length - 1].label; }
 
-    function weightedPick(bonuses) {
-      let sum = 0;
-      const cumulative = bonuses.map(b => { sum += b.weight; return { label: b.label, cum: sum }; });
-      const r = Math.random() * sum;
-      for (let i = 0; i < cumulative.length; i++) if (r <= cumulative[i].cum) return cumulative[i].label;
-      return cumulative[cumulative.length - 1].label;
-    }
-
-    // ----- create bulbs INSIDE SVG using <g> + <foreignObject> -----
-    // We'll create an SVG <g class="bulb-svg"> per bulb and inside a foreignObject with the same HTML structure.
-    // Positioning will use the path.getPointAtLength (SVG units) and set g.transform = translate(x,y).
-    // The offset from the path will be applied in SVG user units, converting from desired pixel offset via CTM.
-
+    // ---------- supports foreignObject? ----------
     const supportsForeignObject = typeof document.createElementNS === 'function' && !!document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject').toString;
 
+    // keep arrays to reference hangers/groups
+    let hangerEls = []; // array of <line>
+    let groupEls = [];  // array of <g> for bulbs (when using foreignObject) or null for fallback
+
+    // ---------- create bulbs (and hangers) ----------
     function createBulbs(n){
-      // remove existing bulb groups
-      const existing = svg.querySelectorAll('g.bulb-svg');
-      existing.forEach(e=> e.remove());
+      // cleanup previous
+      hangerEls.forEach(l => l.remove());
+      hangerEls = [];
+      groupEls.forEach(g => g && g.remove());
+      groupEls = [];
+      // also clear lights overlay if fallback
+      if(!supportsForeignObject) lights.innerHTML = '';
 
       for(let i=0;i<n;i++){
-        const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-        g.setAttribute('class','bulb-svg');
-        g.setAttribute('data-index', i);
+        // create hanger line first so it's under group visually (append before group)
+        const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+        line.setAttribute('class','hanger');
+        line.setAttribute('stroke','#ffffff');
+        line.setAttribute('stroke-linecap','round');
+        line.setAttribute('opacity','0.98');
+        // default stroke-width in SVG user units will be set later
+        svg.appendChild(line);
+        hangerEls.push(line);
 
         if(supportsForeignObject){
-          // create foreignObject sized relative to SVG later (we'll set width/height in user units during positioning)
+          const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+          g.setAttribute('class','bulb-svg');
+          g.setAttribute('data-index', i);
+
           const f = document.createElementNS('http://www.w3.org/2000/svg','foreignObject');
-          // temporary width/height in user units (these will be adjusted in positionBulbs using CTM)
+          // temporary values; we'll update width/height/x/y on positioning
           f.setAttribute('width', 64);
           f.setAttribute('height', 64);
-          // center by default by setting x/y to -width/2,-height/2 inside the group when we translate
+
           const div = document.createElement('div');
           div.setAttribute('xmlns','http://www.w3.org/1999/xhtml');
           div.style.width = '100%';
@@ -96,15 +102,15 @@ document.addEventListener('DOMContentLoaded', () => {
           `;
           f.appendChild(div);
           g.appendChild(f);
-          svg.appendChild(g);
+          svg.appendChild(g); // appended after line => line under group
+          groupEls.push(g);
 
-          // attach event listeners on the inner button (needs to be done after insertion)
+          // attach listeners
           const btn = div.querySelector('button.bulb');
           btn.addEventListener('click', onBulbClick);
-          btn.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onBulbClick({ currentTarget: btn }); } });
-
+          btn.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); onBulbClick({ currentTarget: btn }); } });
         } else {
-          // fallback: create an HTML button in the overlay 'lights' as before
+          // fallback: create HTML button in overlay
           const btn = document.createElement('button');
           btn.className = 'bulb';
           btn.type = 'button';
@@ -116,20 +122,21 @@ document.addEventListener('DOMContentLoaded', () => {
           btn.addEventListener('click', onBulbClick);
           btn.addEventListener('keydown', (e) => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onBulbClick({ currentTarget: btn }); } });
           lights.appendChild(btn);
+          groupEls.push(null);
         }
       }
-      assignBonuses(); // assign labels/colors
+
+      assignBonuses();
       positionBulbsDeferred();
     }
 
     function assignBonuses(){
       if(supportsForeignObject){
         const groups = svg.querySelectorAll('g.bulb-svg');
-        groups.forEach((g, i) => {
+        groups.forEach((g,i) => {
           const btn = g.querySelector('button.bulb');
           const pick = weightedPick(BONUSES);
           btn.dataset.bonus = pick;
-          // color / glow update:
           const color = RAINBOW[i % RAINBOW.length];
           const glow = btn.querySelector('.glow');
           if(glow) glow.style.background = hexToRgba(color, 0.36);
@@ -154,11 +161,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // Positioning: if we used foreignObject, set each group's transform in SVG user units.
+    // position bulbs + hangers
     function positionBulbs(){
-      // If we created HTML fallback bulbs, use previous method for them
+      // fallback HTML bulbs
       if(!supportsForeignObject){
-        // old fallback positioning (unchanged)
         const nodes = Array.from(document.querySelectorAll('.bulb'));
         if(!path || !svg || nodes.length === 0) return;
         const L = path.getTotalLength();
@@ -188,18 +194,36 @@ document.addEventListener('DOMContentLoaded', () => {
           const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
           const art = el.querySelector('.art');
           if(art) art.style.transform = `translateY(6px) rotate(${-angle}deg)`;
+
+          // position hanger as line between path point and point slightly above bulb
+          const hanger = hangerEls[idx];
+          if(hanger){
+            const screenStartX = svgRect.left + point.x * scaleX;
+            const screenStartY = svgRect.top  + point.y * scaleY;
+            const adjustPx = cssBulb * 0.42;
+            const screenEndX = screenStartX + nx * (offsetPx - adjustPx);
+            const screenEndY = screenStartY + ny * (offsetPx - adjustPx);
+            // convert back to svg user coords
+            const userX1 = (screenStartX - svgRect.left) / scaleX;
+            const userY1 = (screenStartY - svgRect.top)  / scaleY;
+            const userX2 = (screenEndX   - svgRect.left) / scaleX;
+            const userY2 = (screenEndY   - svgRect.top)  / scaleY;
+            hanger.setAttribute('x1', userX1);
+            hanger.setAttribute('y1', userY1);
+            hanger.setAttribute('x2', userX2);
+            hanger.setAttribute('y2', userY2);
+            hanger.setAttribute('stroke-width', Math.max(3, cssBulb*0.06));
+          }
         });
         return;
       }
 
-      // Preferred path: use SVG coordinates and CTM to compute offsets in SVG user units
+      // Preferred SVG foreignObject path
       const groups = Array.from(svg.querySelectorAll('g.bulb-svg'));
       if(groups.length === 0) return;
       const L = path.getTotalLength();
-      // Obtain CTM: mapping from SVG user units to screen pixels
       let ctm = null;
       try { ctm = svg.getScreenCTM(); } catch(e) { ctm = null; }
-      // If we don't have CTM, fall back to scaled viewBox method below
       const hasCTM = !!ctm && typeof svg.createSVGPoint === 'function';
       const containerRect = svg.getBoundingClientRect();
       const isMobile = (window.innerWidth || document.documentElement.clientWidth) < 520;
@@ -209,15 +233,15 @@ document.addEventListener('DOMContentLoaded', () => {
       for(let idx=0; idx<groups.length; idx++){
         const g = groups[idx];
         const t = (idx + 1) / (groups.length + 1);
-        const svgPt = path.getPointAtLength(t * L); // in SVG user units
+        const svgPt = path.getPointAtLength(t * L);
 
+        // compute screen point
         if(hasCTM){
-          // compute screen point for svgPt
           const pt = svg.createSVGPoint();
           pt.x = svgPt.x; pt.y = svgPt.y;
-          const screenP = pt.matrixTransform(ctm); // {x,y} in screen pixels
+          const screenP = pt.matrixTransform(ctm);
 
-          // compute nearby points to estimate normal direction in screen space
+          // nearby points for tangent -> normal in screen space
           const delta = Math.max(1, L * 0.002);
           const p1 = path.getPointAtLength(Math.max(0, t*L - delta));
           const p2 = path.getPointAtLength(Math.min(L, t*L + delta));
@@ -229,54 +253,67 @@ document.addEventListener('DOMContentLoaded', () => {
           const nx = -dy / len;
           const ny = dx / len;
 
-          // offset in screen pixels => convert to SVG user units along direction by dividing by ctm.a (scale)
-          // Use ctm.a as approximate scale factor (assumes uniform scale)
-          const scaleFactor = ctm.a || (containerRect.width / (svg.viewBox.baseVal.width || containerRect.width));
-          const offsetSvg = offsetPx / scaleFactor;
-
-          const targetX = svgPt.x + ( ( -dy/len * 0 ) /* keep in svg units only via transform below */ );
-          // But we will set transform using SVG user units directly:
-          const finalX = svgPt.x + ( ( -dy/len ) * (offsetPx / scaleFactor) ) * (1/ ( (ctm.a || 1) / (ctm.a || 1) )); // simplified
-          // Simpler: compute final SVG user coordinates by converting screen offset back:
-          // We already have screenP (screen pixels). We'll compute screen target then map back to SVG user coords:
+          // screen coordinate of bulb center (pushed by offsetPx along normal)
           const screenTargetX = screenP.x + nx * offsetPx;
           const screenTargetY = screenP.y + ny * offsetPx;
-          // To convert screenTarget back to SVG user coords, invert CTM matrix:
+
+          // compute a slightly shorter end so hanger ends near top of bulb (adjust by adjustPx)
+          const adjustPx = cssBulbPx * 0.42;
+          const screenHangerEndX = screenP.x + nx * (offsetPx - adjustPx);
+          const screenHangerEndY = screenP.y + ny * (offsetPx - adjustPx);
+
+          // convert screenTarget back to SVG user coords using inverse CTM
           let inv;
           try { inv = ctm.inverse(); } catch(e){ inv = null; }
+
           if(inv){
             const pt2 = svg.createSVGPoint();
+            // bulb center in svg coords
             pt2.x = screenTargetX; pt2.y = screenTargetY;
             const svgTarget = pt2.matrixTransform(inv);
-            // Position the group at svgTarget
+            // hanger end in svg coords
+            pt2.x = screenHangerEndX; pt2.y = screenHangerEndY;
+            const svgHangerEnd = pt2.matrixTransform(inv);
+
+            // set group transform to svgTarget (group origin at bulb center)
             g.setAttribute('transform', `translate(${svgTarget.x}, ${svgTarget.y})`);
-            // rotate inner art according to SVG tangent
-            const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
-            const art = g.querySelector('.art');
-            if(art) art.style.transform = `translateY(6px) rotate(${-angle}deg)`;
-            // Also set foreignObject size proportional to CSS px -> svg units
+            // set foreignObject size centered
             const f = g.querySelector('foreignObject');
             if(f){
-              const widthSvg = cssBulbPx / (ctm.a || 1);
-              const heightSvg = cssBulbPx / (ctm.a || 1);
-              // set x/y so the foreignObject is centered at the group origin
+              const widthSvg = cssBulbPx / (ctm.a || (containerRect.width / (svg.viewBox.baseVal.width || containerRect.width)));
+              const heightSvg = cssBulbPx / (ctm.a || (containerRect.width / (svg.viewBox.baseVal.width || containerRect.width)));
               f.setAttribute('width', widthSvg);
               f.setAttribute('height', heightSvg);
               f.setAttribute('x', -(widthSvg/2));
               f.setAttribute('y', -(heightSvg/2));
             }
+
+            // set hanger line coordinates (in svg user coords) between svgPt and svgHangerEnd
+            const hanger = hangerEls[idx];
+            if(hanger){
+              hanger.setAttribute('x1', svgPt.x);
+              hanger.setAttribute('y1', svgPt.y);
+              hanger.setAttribute('x2', svgHangerEnd.x);
+              hanger.setAttribute('y2', svgHangerEnd.y);
+              hanger.setAttribute('stroke-width', Math.max(3, cssBulbPx*0.06));
+            }
+
+            // rotate inner art according to SVG tangent
+            const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
+            const art = g.querySelector('.art');
+            if(art) art.style.transform = `translateY(6px) rotate(${-angle}deg)`;
             continue;
           }
         }
 
-        // Fallback (if CTM/inverse not available): compute using bounding rect + viewBox scaling (legacy)
+        // fallback path: compute using bounding rect scale
         const svgRect = svg.getBoundingClientRect();
         const vb = svg.viewBox.baseVal;
         const scaleX = svgRect.width / (vb.width || svgRect.width);
         const scaleY = svgRect.height / (vb.height || svgRect.height);
-        const screenX = svgRect.left + svgPt.x * scaleX;
-        const screenY = svgRect.top  + svgPt.y * scaleY;
 
+        const screenStartX = svgRect.left + svgPt.x * scaleX;
+        const screenStartY = svgRect.top  + svgPt.y * scaleY;
         const delta = Math.max(1, L * 0.002);
         const p1 = path.getPointAtLength(Math.max(0, t*L - delta));
         const p2 = path.getPointAtLength(Math.min(L, t*L + delta));
@@ -286,17 +323,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const nx = -dy / len;
         const ny = dx / len;
 
-        const screenXoff = screenX + nx * offsetPx;
-        const screenYoff = screenY + ny * offsetPx;
+        const screenTargetX = screenStartX + nx * offsetPx;
+        const screenTargetY = screenStartY + ny * offsetPx;
+        const adjustPx = cssBulbPx * 0.42;
+        const screenHangerEndX = screenStartX + nx * (offsetPx - adjustPx);
+        const screenHangerEndY = screenStartY + ny * (offsetPx - adjustPx);
 
-        // convert screen back to svg user coords
-        const userX = (screenXoff - svgRect.left) / scaleX;
-        const userY = (screenYoff - svgRect.top) / scaleY;
+        // convert back to svg user units
+        const userTargetX = (screenTargetX - svgRect.left) / scaleX;
+        const userTargetY = (screenTargetY - svgRect.top) / scaleY;
+        const userHangerX = (screenHangerEndX - svgRect.left) / scaleX;
+        const userHangerY = (screenHangerEndY - svgRect.top) / scaleY;
 
-        g.setAttribute('transform', `translate(${userX}, ${userY})`);
-        const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
-        const art = g.querySelector('.art');
-        if(art) art.style.transform = `translateY(6px) rotate(${-angle}deg)`;
+        g.setAttribute('transform', `translate(${userTargetX}, ${userTargetY})`);
         const f = g.querySelector('foreignObject');
         if(f){
           const widthSvg = cssBulbPx / (scaleX || 1);
@@ -306,54 +345,47 @@ document.addEventListener('DOMContentLoaded', () => {
           f.setAttribute('x', -(widthSvg/2));
           f.setAttribute('y', -(heightSvg/2));
         }
-      } // end for
+        const hanger = hangerEls[idx];
+        if(hanger){
+          hanger.setAttribute('x1', svgPt.x);
+          hanger.setAttribute('y1', svgPt.y);
+          hanger.setAttribute('x2', userHangerX);
+          hanger.setAttribute('y2', userHangerY);
+          hanger.setAttribute('stroke-width', Math.max(3, cssBulbPx*0.06));
+        }
+        const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
+        const art = g.querySelector('.art');
+        if(art) art.style.transform = `translateY(6px) rotate(${-angle}deg)`;
+      } // end groups loop
     } // end positionBulbs
 
     function positionBulbsDeferred(){
       window.requestAnimationFrame(() => { setTimeout(() => positionBulbs(), 50); });
     }
 
-    // ----- selection handler (works for buttons inside foreignObject or fallback HTML buttons) -----
+    // ---------- selection ----------
     function onBulbClick(e){
-      // currentTarget may be button element (HTML). We need to find its dataset.bonus.
       const btn = e.currentTarget;
       if(!btn) return;
-      // If button is inside foreignObject, it has dataset.bonus; else fallback.
       if(hasChosenToday()){
         const stored = getStoredChoice();
         if(stored) showStoredModal(stored.bonus);
         return;
       }
       if(btn.classList.contains('revealed')) return;
-
       btn.classList.add('revealed');
       btn.disabled = true;
-      // disable other bulbs (both HTML and within SVG)
       document.querySelectorAll('button.bulb').forEach(b => { if(b !== btn) b.disabled = true; });
-
       const bonus = btn.dataset.bonus || '¡Sorpresa!';
       setStoredChoice(bonus);
       showModalWith(bonus);
       createConfettiAtElement(btn);
     }
-    function showModalWith(bonus){
-      modalBonus.textContent = bonus;
-      modal.classList.add('show');
-      modal.setAttribute('aria-hidden','false');
-    }
-    function showStoredModal(bonus){
-      const title = modal.querySelector('.modal-title');
-      const sub = modal.querySelector('.modal-sub');
-      if(title) title.textContent = 'Ya elegiste hoy';
-      if(sub) sub.textContent = 'No puedes elegir otra hasta mañana. Tu bono fue:';
-      modalBonus.textContent = bonus;
-      modal.classList.add('show');
-      modal.setAttribute('aria-hidden','false');
-    }
+    function showModalWith(bonus){ modalBonus.textContent = bonus; modal.classList.add('show'); modal.setAttribute('aria-hidden','false'); }
+    function showStoredModal(bonus){ const title = modal.querySelector('.modal-title'); const sub = modal.querySelector('.modal-sub'); if(title) title.textContent = 'Ya elegiste hoy'; if(sub) sub.textContent = 'No puedes elegir otra hasta mañana. Tu bono fue:'; modalBonus.textContent = bonus; modal.classList.add('show'); modal.setAttribute('aria-hidden','false'); }
 
-    // ----- confetti (lighter on mobile) -----
+    // ---------- confetti ----------
     function createConfettiAtElement(btn){
-      // btn might be inside foreignObject; use its getBoundingClientRect for screen center
       const rect = btn.getBoundingClientRect();
       const cx = rect.left + rect.width/2;
       const cy = rect.top + rect.height/2;
@@ -375,7 +407,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // ----- trees decor (unchanged from previous responsive implementation) -----
+    // ---------- trees (unchanged) ----------
     function createTrees(count = 40){
       if(!treesLayer || !stageEl) return;
       treesLayer.innerHTML = '';
@@ -388,14 +420,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const maxAttempts = 80;
       for(let i=0;i<count;i++){
         let attempts = 0, placed=false;
-        while(!placed && attempts < maxAttempts){
+        while(!placed && attempts<maxAttempts){
           attempts++;
-          const x = Math.random() * vw;
-          const y = Math.random() * vh;
-          if(isVerySmall){ const topZone = y < vh * 0.25; const bottomZone = y > vh * 0.75; const sideZone = x < vw * 0.12 || x > vw * 0.88; if(!(topZone||bottomZone||sideZone)) continue; }
-          if(x >= excl.left && x <= excl.right && y >= excl.top && y <= excl.bottom) continue;
+          const x = Math.random()*vw;
+          const y = Math.random()*vh;
+          if(isVerySmall){ const topZone = y < vh*0.25; const bottomZone = y>vh*0.75; const sideZone = x<vw*0.12||x>vw*0.88; if(!(topZone||bottomZone||sideZone)) continue; }
+          if(x>=excl.left && x<=excl.right && y>=excl.top && y<=excl.bottom) continue;
           const el = document.createElement('div'); el.className='tree'; el.textContent='🎄';
-          const size = Math.floor((isVerySmall ? 10 : 14) + Math.random()*(isVerySmall?28:50));
+          const size = Math.floor((isVerySmall?10:14)+Math.random()*(isVerySmall?28:50));
           el.style.fontSize = size+'px';
           el.style.left = (x/vw*100)+'%'; el.style.top=(y/vh*100)+'%';
           const rot=(Math.random()*40-20).toFixed(1)+'deg'; el.style.setProperty('--rot', rot);
@@ -412,27 +444,23 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', ()=>{ clearTimeout(treesResizeTimer); treesResizeTimer = setTimeout(()=>{ refreshTrees(); positionBulbsDeferred(); }, 220); });
     window.addEventListener('orientationchange', ()=>{ setTimeout(()=>{ refreshTrees(); positionBulbsDeferred(); }, 240); });
 
-    // ----- modal handler -----
+    // ---------- modal handler ----------
     modalOk.addEventListener('click', ()=>{ modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); const title = modal.querySelector('.modal-title'); const sub = modal.querySelector('.modal-sub'); if(title) title.textContent='¡Felicidades!'; if(sub) sub.textContent='Te ganaste un bono de'; });
 
-    // ----- init -----
+    // ---------- init ----------
     createBulbs(BULB_COUNT);
     assignBonuses();
-    // wait fonts/layout before final positioning
     if(document.fonts && document.fonts.ready){
       document.fonts.ready.then(()=>{ positionBulbsDeferred(); refreshTrees(); }).catch(()=>{ positionBulbsDeferred(); refreshTrees(); });
     } else {
       positionBulbsDeferred(); refreshTrees();
     }
-
     const stored = getStoredChoice();
     if(stored && stored.date === todayStr()){
-      // disable all (buttons inside foreignObject will be found by querySelector)
       document.querySelectorAll('button.bulb').forEach(b => b.disabled = true);
       showStoredModal(stored.bonus);
     }
-
-    console.log('Guirnalda inicializada (bulbs dentro del SVG para alineación robusta).');
+    console.log('Guirnalda inicializada (hangers añadidos).');
 
   } catch (err) {
     console.error('Error inicializando guirnalda:', err);
