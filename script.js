@@ -1,19 +1,15 @@
 // script.js — una elección por dispositivo por día (localStorage)
 // + capa decorativa de árboles 🎄 aleatorios en el fondo
-// Modificación: los bonos ahora son 100%, 150% y 200% con probabilidades ponderadas
-// (100% y 150% son más probables que 200%).
+// Ajuste: mayor cantidad de árboles en el fondo.
 
 document.addEventListener('DOMContentLoaded', () => {
   try {
     const STORAGE_KEY = 'guirnalda.choice.v1';
-
-    // BONOS y probabilidades (suman 1)
     const BONUSES = [
-      { label: "100% de bono", weight: 0.50 }, // 50% prob
-      { label: "150% de bono", weight: 0.35 }, // 35% prob
-      { label: "200% de bono", weight: 0.15 }  // 15% prob
+      { label: "100% de bono", weight: 0.50 },
+      { label: "150% de bono", weight: 0.35 },
+      { label: "200% de bono", weight: 0.15 }
     ];
-
     const RAINBOW = ['#8e24aa','#1e88e5','#43a047','#fdd835','#fb8c00','#e53935','#ff4081','#ffd54f','#81d4fa'];
     const BULB_COUNT = 9;
 
@@ -31,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // ---------- helpers de fecha/storage ----------
+    // ---------- helpers ----------
     const todayStr = () => {
       const d = new Date();
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -54,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return st && st.date === todayStr();
     }
 
-    // ---------- visual helpers ----------
+    // utils
     function shuffle(arr){
       const a = arr.slice();
       for(let i=a.length-1;i>0;i--){
@@ -81,9 +77,8 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
-    // Weighted random chooser returns label string
+    // weighted pick
     function weightedPick(bonuses) {
-      // build cumulative array
       let sum = 0;
       const cumulative = bonuses.map(b => {
         sum += b.weight;
@@ -96,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return cumulative[cumulative.length - 1].label;
     }
 
-    // ---------- crear y posicionar bombillas ----------
+    // bulbs
     function createBulbs(n){
       lights.innerHTML = '';
       for(let i=0;i<n;i++){
@@ -120,7 +115,6 @@ document.addEventListener('DOMContentLoaded', () => {
       window.addEventListener('resize', positionBulbs);
     }
 
-    // Assign bonuses using weighted random per bulb
     function assignBonuses(){
       const bulbs = document.querySelectorAll('.bulb');
       bulbs.forEach((b, i) => {
@@ -134,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
         b.classList.remove('revealed');
         b.disabled = false;
       });
-      console.log('Bonos asignados (ponderados):', Array.from(bulbs).map(b=>b.dataset.bonus));
+      console.log('Bonos asignados (ponderados):', Array.from(document.querySelectorAll('.bulb')).map(b=>b.dataset.bonus));
     }
 
     function positionBulbs(){
@@ -174,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // ---------- selección con bloqueo diario ----------
+    // selection
     function onBulbClick(e){
       if(hasChosenToday()){
         const stored = getStoredChoice();
@@ -210,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
       modal.setAttribute('aria-hidden','false');
     }
 
-    // ---------- confetti ----------
+    // confetti
     function createConfettiAtElement(el){
       const rect = el.getBoundingClientRect();
       const cx = rect.left + rect.width/2;
@@ -231,15 +225,15 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // ---------- árboles decorativos (🎄) ----------
-    function createTrees(count = 24){
+    // trees — increase density
+    function createTrees(count = 40){
       if(!treesLayer) return;
       treesLayer.innerHTML = '';
       for(let i=0;i<count;i++){
         const el = document.createElement('div');
         el.className = 'tree animate';
         el.textContent = '🎄';
-        const size = Math.floor(14 + Math.random()*36);
+        const size = Math.floor(12 + Math.random()*48);
         el.style.fontSize = size + 'px';
         const left = Math.random()*100;
         const top = Math.random()*100;
@@ -247,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
         el.style.top = top + '%';
         const rot = (Math.random()*40 - 20).toFixed(1) + 'deg';
         el.style.setProperty('--rot', rot);
-        el.style.opacity = (0.45 + Math.random()*0.5).toFixed(2);
+        el.style.opacity = (0.35 + Math.random()*0.6).toFixed(2);
         if(size > 36) el.style.filter = 'drop-shadow(0 10px 12px rgba(0,0,0,0.45))';
         treesLayer.appendChild(el);
       }
@@ -255,7 +249,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let treesResizeTimer = null;
     function refreshTrees(){
       const vw = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
-      const base = vw > 1200 ? 30 : vw > 900 ? 22 : vw > 600 ? 16 : 10;
+      // aumenté los valores para mayor densidad
+      const base = vw > 1400 ? 90 : vw > 1200 ? 70 : vw > 900 ? 50 : vw > 600 ? 36 : 22;
       createTrees(base);
     }
     window.addEventListener('resize', () => {
@@ -263,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
       treesResizeTimer = setTimeout(refreshTrees, 220);
     });
 
-    // ---------- modal handler ----------
+    // modal handler
     modalOk.addEventListener('click', () => {
       modal.classList.remove('show');
       modal.setAttribute('aria-hidden','true');
@@ -273,11 +268,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if(sub) sub.textContent = 'Te ganaste un bono de';
     });
 
-    // ---------- init ----------
+    // init
     createBulbs(BULB_COUNT);
     assignBonuses();
 
-    // inicializa árboles decorativos
     refreshTrees();
 
     const stored = getStoredChoice();
@@ -288,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
       positionBulbs();
     }
 
-    console.log('Guirnalda inicializada con bloqueo diario y bonos ponderados.');
+    console.log('Guirnalda inicializada con bloqueo diario y mayor densidad de árboles.');
   } catch (err) {
     console.error('Error inicializando guirnalda:', err);
   }
