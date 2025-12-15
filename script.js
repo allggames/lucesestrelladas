@@ -1,5 +1,5 @@
 // script.js — una elección por dispositivo por día (localStorage)
-// Mantengo la lógica que ya tienes: no hay "reiniciar" en la UI.
+// + capa decorativa de árboles 🎄 aleatorios en el fondo
 
 document.addEventListener('DOMContentLoaded', () => {
   try {
@@ -18,13 +18,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalBonus = document.getElementById('modal-bonus');
     const modalOk = document.getElementById('modal-ok');
     const confettiLayer = document.getElementById('confetti');
+    const treesLayer = document.getElementById('trees');
 
     if(!svg || !path || !lights) {
       console.error('Elemento SVG/path/lights no encontrado en el DOM.');
       return;
     }
 
-    // helpers de fecha/storage
+    // ---------- helpers de fecha/storage ----------
     const todayStr = () => {
       const d = new Date();
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -47,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return st && st.date === todayStr();
     }
 
-    // visuals helpers
+    // ---------- visual helpers ----------
     function shuffle(arr){
       const a = arr.slice();
       for(let i=a.length-1;i>0;i--){
@@ -74,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
-    // crear y posicionar bombillas
+    // ---------- crear y posicionar bombillas ----------
     function createBulbs(n){
       lights.innerHTML = '';
       for(let i=0;i<n;i++){
@@ -152,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // selección con bloqueo diario
+    // ---------- selección con bloqueo diario ----------
     function onBulbClick(e){
       if(hasChosenToday()){
         const stored = getStoredChoice();
@@ -188,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
       modal.setAttribute('aria-hidden','false');
     }
 
-    // confetti
+    // ---------- confetti ----------
     function createConfettiAtElement(el){
       const rect = el.getBoundingClientRect();
       const cx = rect.left + rect.width/2;
@@ -209,7 +210,50 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // modal handler
+    // ---------- árboles decorativos (🎄) ----------
+    // crea N árboles con posición/escala/rot aleatoria dentro del viewport
+    function createTrees(count = 24){
+      if(!treesLayer) return;
+      treesLayer.innerHTML = '';
+      const vw = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+      const vh = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+      for(let i=0;i<count;i++){
+        const el = document.createElement('div');
+        el.className = 'tree animate';
+        // emoji tree
+        el.textContent = '🎄';
+        // random size between 18px and 48px (scaled by viewport)
+        const size = Math.floor(14 + Math.random()*36);
+        el.style.fontSize = size + 'px';
+        // random position (use % for responsiveness)
+        const left = Math.random()*100;
+        const top = Math.random()*100;
+        el.style.left = left + '%';
+        el.style.top = top + '%';
+        // small random rotation
+        const rot = (Math.random()*40 - 20).toFixed(1) + 'deg';
+        el.style.setProperty('--rot', rot);
+        // slight opacity and layering
+        el.style.opacity = (0.45 + Math.random()*0.5).toFixed(2);
+        // small blur/depth for larger trees
+        if(size > 36) el.style.filter = 'drop-shadow(0 10px 12px rgba(0,0,0,0.45))';
+        treesLayer.appendChild(el);
+      }
+    }
+    // reposition: re-create or adjust trees on resize for better spread
+    let treesResizeTimer = null;
+    function refreshTrees(){
+      // recreate with a count proportional to viewport width, capped
+      const vw = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+      const base = vw > 1200 ? 30 : vw > 900 ? 22 : vw > 600 ? 16 : 10;
+      createTrees(base);
+    }
+    window.addEventListener('resize', () => {
+      clearTimeout(treesResizeTimer);
+      treesResizeTimer = setTimeout(refreshTrees, 220);
+    });
+
+    // ---------- modal handler ----------
     modalOk.addEventListener('click', () => {
       modal.classList.remove('show');
       modal.setAttribute('aria-hidden','true');
@@ -219,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if(sub) sub.textContent = 'Te ganaste un bono de';
     });
 
-    // storage helpers
+    // ---------- storage helpers ----------
     function getStoredChoice(){
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -227,6 +271,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return JSON.parse(raw);
       } catch(e){ return null; }
     }
+
+    // note: setStoredChoice function defined earlier; keep the same wrapper here for safety
     function setStoredChoice(bonus){
       try {
         const item = { bonus, date: todayStr(), ts: Date.now() };
@@ -234,9 +280,12 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch(e){ /* ignore */ }
     }
 
-    // init
+    // ---------- init ----------
     createBulbs(BULB_COUNT);
     assignBonuses();
+
+    // inicializa árboles decorativos
+    refreshTrees();
 
     const stored = getStoredChoice();
     if(stored && stored.date === todayStr()){
@@ -246,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
       positionBulbs();
     }
 
-    console.log('Guirnalda inicializada con bloqueo diario.');
+    console.log('Guirnalda inicializada con bloqueo diario y árboles decorativos.');
   } catch (err) {
     console.error('Error inicializando guirnalda:', err);
   }
