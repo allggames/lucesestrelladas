@@ -1,5 +1,7 @@
+// script.js — una elección por dispositivo por día (localStorage)
 document.addEventListener('DOMContentLoaded', () => {
   try {
+    const STORAGE_KEY = 'guirnalda.choice.v1';
     const BONUS = [
       "150% de bono","100% de bono","200% de bono","50% de bono","250% de bono",
       "75% de bono","300% de bono","30% de bono","10% de bono"
@@ -21,8 +23,36 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    let chosen = false;
+    // ---------- helpers: fecha + storage ----------
+    const todayStr = () => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    };
 
+    function getStoredChoice(){
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(!raw) return null;
+        return JSON.parse(raw);
+      } catch(e){
+        console.warn('Error parseando storage', e);
+        return null;
+      }
+    }
+    function setStoredChoice(bonus){
+      try {
+        const item = { bonus, date: todayStr(), ts: Date.now() };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(item));
+      } catch(e){
+        console.warn('No se pudo guardar elección en localStorage:', e);
+      }
+    }
+    function hasChosenToday(){
+      const st = getStoredChoice();
+      return st && st.date === todayStr();
+    }
+
+    // ---------- utils visuales ----------
     function shuffle(arr){
       const a = arr.slice();
       for(let i=a.length-1;i>0;i--){
@@ -50,6 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
+    // ---------- crear / asignar / posicionar ----------
     function createBulbs(n){
       lights.innerHTML = '';
       for(let i=0;i<n;i++){
@@ -80,12 +111,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const pick = picks[i] || BONUS[i % BONUS.length];
         const color = RAINBOW[i % RAINBOW.length];
         b.dataset.bonus = pick;
-        b.querySelector('.glow').style.background = hexToRgba(color, 0.36);
-        b.querySelector('.art').innerHTML = bulbSVG(color);
+        const glow = b.querySelector('.glow');
+        if(glow) glow.style.background = hexToRgba(color, 0.36);
+        const art = b.querySelector('.art');
+        if(art) art.innerHTML = bulbSVG(color);
         b.classList.remove('revealed');
         b.disabled = false;
       });
-      chosen = false;
       console.log('Bonos asignados:', picks);
     }
 
@@ -126,8 +158,15 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
+    // ---------- selección (bloqueo diario) ----------
     function onBulbClick(e){
-      if(chosen) { console.log('Ya se eligió una bombilla esta tanda.'); return; }
+      // si ya eligió hoy, mostramos lo guardado y salimos
+      if(hasChosenToday()){
+        const stored = getStoredChoice();
+        if(stored) showStoredModal(stored.bonus);
+        return;
+      }
+
       const btn = e.currentTarget;
       if(!btn || btn.classList.contains('revealed')) return;
 
@@ -136,18 +175,31 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.bulb').forEach(b => { if(b !== btn) b.disabled = true; });
 
       const bonus = btn.dataset.bonus || '¡Sorpresa!';
-      chosen = true;
+      // guardamos la elección para hoy
+      setStoredChoice(bonus);
 
+      // mostramos modal y confetti
+      showModalWith(bonus);
+      createConfettiAtElement(btn);
+      console.log('Bombilla elegida y almacenada:', bonus);
+    }
+
+    function showModalWith(bonus){
       modalBonus.textContent = bonus;
       modal.classList.add('show');
       modal.setAttribute('aria-hidden','false');
-      modal.querySelector('.modal-card')?.focus?.();
-
-      createConfettiAtElement(btn);
-
-      console.log('Bombilla elegida:', bonus);
+    }
+    function showStoredModal(bonus){
+      const title = modal.querySelector('.modal-title');
+      const sub = modal.querySelector('.modal-sub');
+      if(title) title.textContent = 'Ya elegiste hoy';
+      if(sub) sub.textContent = 'No puedes elegir otra hasta mañana. Tu bono fue:';
+      modalBonus.textContent = bonus;
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden','false');
     }
 
+    // ---------- confetti ----------
     function createConfettiAtElement(el){
       const rect = el.getBoundingClientRect();
       const cx = rect.left + rect.width/2;
@@ -165,32 +217,72 @@ document.addEventListener('DOMContentLoaded', () => {
         p.style.animationDelay = (Math.random()*200) + 'ms';
         confettiLayer.appendChild(p);
         setTimeout(()=> p.remove(), 1600 + Math.random()*800);
-      });
+      }
     }
 
+    // ---------- modal y reinicio ----------
     modalOk.addEventListener('click', () => {
       modal.classList.remove('show');
       modal.setAttribute('aria-hidden','true');
+      // restaurar textos por si cambiamos
+      const title = modal.querySelector('.modal-title');
+      const sub = modal.querySelector('.modal-sub');
+      if(title) title.textContent = '¡Felicidades!';
+      if(sub) sub.textContent = 'Te ganaste un bono de';
     });
 
     resetBtn.addEventListener('click', () => {
+      if(hasChosenToday()){
+        const stored = getStoredChoice();
+        if(stored) { showStoredModal(stored.bonus); return; }
+      }
       createBulbs(BULB_COUNT);
       assignBonuses();
       positionBulbs();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
+    // ---------- storage helpers (para cierre y comprobación) ----------
+    function getStoredChoice(){
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(!raw) return null;
+        return JSON.parse(raw);
+      } catch(e){ return null; }
+    }
+    function setStoredChoice(bonus){
+      try {
+        const item = { bonus, date: todayStr(), ts: Date.now() };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(item));
+      } catch(e){ /* ignore */ }
+    }
+
+    // ---------- init ----------
     createBulbs(BULB_COUNT);
     assignBonuses();
-    positionBulbs();
 
-    window.resetTanda = () => { createBulbs(BULB_COUNT); assignBonuses(); positionBulbs(); };
+    const stored = getStoredChoice();
+    if(stored && stored.date === todayStr()){
+      // bloquear UI y mostrar bono guardado
+      document.querySelectorAll('.bulb').forEach(b => b.disabled = true);
+      showStoredModal(stored.bonus);
+    } else {
+      positionBulbs();
+    }
 
-    console.log('Guirnalda inicializada.');
+    // helper dev
+    window.resetTanda = () => {
+      if(hasChosenToday()){
+        const s = getStoredChoice();
+        if(s) { showStoredModal(s.bonus); return; }
+      }
+      createBulbs(BULB_COUNT);
+      assignBonuses();
+      positionBulbs();
+    };
+
+    console.log('Guirnalda inicializada con bloqueo diario.');
   } catch (err) {
     console.error('Error inicializando guirnalda:', err);
   }
 });
-</script>
-</body>
-</html>
