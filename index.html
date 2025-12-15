@@ -28,20 +28,20 @@
     </header>
 
     <!-- SVG de la guirnalda (edítalo para cambiar la forma) -->
-    <svg id="garlandSVG" class="garland-svg" viewBox="0 0 1200 360" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-      <!-- cable principal -->
-      <path id="garlandPath" d="
-        M40,120
-        C180,40 320,200 460,120
-        C600,40 740,200 880,120
-        C980,60 1100,160 1160,120
-      " stroke="#111" stroke-width="6" fill="none" stroke-linecap="round" />
-      <!-- una pequeña curva extra debajo para dar más "guirnalda" -->
-      <path d="M120,170 C260,240 420,80 560,170" stroke="rgba(0,0,0,0.06)" stroke-width="4" fill="none"/>
-    </svg>
+    <div class="svg-wrapper">
+      <svg id="garlandSVG" class="garland-svg" viewBox="0 0 1200 360" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <!-- cable principal -->
+        <path id="garlandPath" d="
+          M40,120
+          C180,40 320,200 460,120
+          C600,40 740,200 880,120
+          C980,60 1100,160 1160,120
+        " stroke="#111" stroke-width="6" fill="none" stroke-linecap="round" />
+      </svg>
 
-    <!-- contenedor donde se colocarán las bombillas (posicionadas por JS) -->
-    <div id="lights" class="lights" role="list" aria-label="Luces de la guirnalda"></div>
+      <!-- contenedor donde se colocarán las bombillas (posicionadas por JS) -->
+      <div id="lights" class="lights" role="list" aria-label="Luces de la guirnalda"></div>
+    </div>
 
     <!-- tooltip para mostrar bono -->
     <div id="tooltip" class="tooltip" role="status" aria-live="polite" hidden>
