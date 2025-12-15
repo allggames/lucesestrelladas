@@ -1,0 +1,84 @@
+:root{
+  --bg:#f8fbff;
+  --string-color:#111;
+  --star-size:56px;
+  --accent:#ffcc00;
+  --card-bg:#ffffff;
+  --text:#111;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;}
+body{background:linear-gradient(180deg,#f0f8ff 0%,var(--bg) 100%);display:flex;align-items:center;justify-content:center;padding:24px}
+
+.stage{width:100%;max-width:960px;position:relative;height:420px;border-radius:12px;padding:24px;box-shadow:0 6px 30px rgba(10,20,40,0.08);background:transparent;overflow:hidden}
+
+/* SVG wave sits near top */
+.wave{position:absolute;left:0;top:40px;width:100%;height:200px;pointer-events:none}
+
+/* container for absolute positioned stars */
+.stars{position:absolute;left:0;right:0;top:0;height:100%;pointer-events:none}
+
+/* base style for a star wrapper */
+.star{
+  position:absolute;
+  width:var(--star-size);
+  height:var(--star-size);
+  margin-left:calc(var(--star-size)/-2);
+  margin-top:calc(var(--star-size)/-2);
+  transform-style:preserve-3d;
+  transition:transform 600ms cubic-bezier(.2,.9,.25,1), opacity 300ms;
+  pointer-events:auto; /* allow clicks */
+  cursor:pointer;
+  touch-action:manipulation;
+}
+
+/* the hanging connector: small vertical line */
+.star::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:-40px;
+  width:2px;
+  height:38px;
+  background:var(--string-color);
+  transform:translateX(-50%);
+  border-radius:1px;
+}
+
+/* card faces for flip animation */
+.face{position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;backface-visibility:hidden;box-shadow:0 6px 18px rgba(10,20,40,0.08)}
+.front{background:radial-gradient(circle at 30% 20%, #fff7d4, var(--accent));color:#fff;font-size:28px}
+.back{background:linear-gradient(180deg,#fff,#ffeecd);transform:rotateY(180deg);color:var(--text);padding:6px;font-weight:700;}
+
+/* Flip state */
+.star.revealed{pointer-events:none;transform:rotateX(20deg) scale(0.98)}
+.star.revealed .inner{transform:rotateY(180deg)}
+
+.inner{position:relative;width:100%;height:100%;border-radius:50%;transform-origin:center;transition:transform 600ms cubic-bezier(.2,.9,.25,1);transform-style:preserve-3d}
+
+/* small star svg/icon */
+.star .icon{font-size:28px;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.15))}
+
+/* popup */
+.popup{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,6,23,0.35);backdrop-filter: blur(2px);z-index:40}
+.popup-card{width:min(92%,380px);padding:18px;border-radius:12px;background:var(--card-bg);box-shadow:0 18px 60px rgba(5,10,25,0.35);text-align:center;position:relative}
+.popup-content{font-size:28px;color:var(--text);font-weight:800;padding:8px}
+.close{position:absolute;right:10px;top:8px;border:0;background:transparent;font-size:18px;cursor:pointer}
+
+/* confetti */
+.confetti-layer{position:absolute;inset:0;pointer-events:none;z-index:30}
+.confetti{
+  position:absolute;width:10px;height:14px;opacity:0;transform:translateY(-10px) rotate(0deg);
+  animation:fall 1200ms forwards ease-out;
+}
+@keyframes fall{
+  0%{opacity:1;transform:translateY(-10px) rotate(0deg)}
+  100%{opacity:1;transform:translateY(180vh) rotate(540deg)}
+}
+
+/* small responsive tweaks */
+@media (max-width:520px){
+  :root{--star-size:48px}
+  .stage{height:360px}
+}
