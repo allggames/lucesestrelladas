@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
-    // Crear bombillas
+    // Create bulbs
     function createBulbs(n){
       lights.innerHTML = '';
       for(let i=0;i<n;i++){
@@ -66,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const art = document.createElement('div'); art.className = 'art'; art.innerHTML = bulbSVG(RAINBOW[i % RAINBOW.length]); btn.appendChild(art);
         const cap = document.createElement('div'); cap.className = 'cap'; btn.appendChild(cap);
 
+        // click and keyboard support
         btn.addEventListener('click', onBulbClick);
         btn.addEventListener('keydown', (e) => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onBulbClick({ currentTarget: btn }); } });
 
@@ -76,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
       window.addEventListener('resize', positionBulbs);
     }
 
-    // Assign bonuses unique per set
+    // Assign bonuses
     function assignBonuses(){
       const picks = shuffle(BONUS).slice(0, BULB_COUNT);
       const bulbs = document.querySelectorAll('.bulb');
@@ -93,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('Bonos asignados:', picks);
     }
 
-    // Position bulbs on SVG path
+    // Position bulbs on path
     function positionBulbs(){
       const nodes = Array.from(document.querySelectorAll('.bulb'));
       if(!path || !svg || nodes.length === 0) return;
@@ -115,7 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const len = Math.hypot(dx, dy) || 1;
         const nx = -dy / len, ny = dx / len;
 
-        // offset scales with bulb size
         const cssBulb = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bulb-size')) || 96;
         const offset = Math.max(cssBulb * 0.22, 20);
 
@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // Click handler: open modal, disable other bulbs (only one choice)
+    // Click handler
     function onBulbClick(e){
       if(chosen) {
         console.log('Ya se eligió una bombilla esta tanda.');
@@ -148,13 +148,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const bonus = btn.dataset.bonus || '¡Sorpresa!';
       chosen = true;
 
-      // show modal with friendly message
       modalBonus.textContent = bonus;
       modal.classList.add('show');
       modal.setAttribute('aria-hidden','false');
       modal.querySelector('.modal-card')?.focus?.();
 
-      // confetti
       createConfettiAtElement(btn);
 
       console.log('Bombilla elegida:', bonus);
@@ -181,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // modal ok and reset
+    // modal and reset
     modalOk.addEventListener('click', () => {
       modal.classList.remove('show');
       modal.setAttribute('aria-hidden','true');
@@ -199,7 +197,6 @@ document.addEventListener('DOMContentLoaded', () => {
     assignBonuses();
     positionBulbs();
 
-    // expose helper
     window.resetTanda = () => { createBulbs(BULB_COUNT); assignBonuses(); positionBulbs(); };
 
     console.log('Guirnalda inicializada.');
