@@ -244,11 +244,6 @@ line.hanger,
   display: none !important;
 }
 
-/* Ocultar el rect blanco dentro del SVG de la bombilla (la pequeña tapa superior) */
-.bulb .art svg rect {
-  display: none !important;
-}
-
 /* Asegurar que el botón reciba clicks y el SVG interior no bloquee eventos */
 .bulb { pointer-events: auto; }
 .bulb .art svg { pointer-events: none; }
