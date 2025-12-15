@@ -98,13 +98,11 @@ svg.garland{position:relative; width:92%; height:100%; pointer-events:none; z-in
 }
 .bulb:focus{box-shadow:0 0 0 10px rgba(255,255,255,0.06);border-radius:50%}
 
-/* cable corto */
+/* --- QUITADO: palito superior (antes .bulb::before dibujaba la barra vertical) --- */
+/* Aseguramos que no se muestre esa barra */
 .bulb::before{
-  content:"";
-  position:absolute;
-  top:calc(-1 * var(--bulb-size) * 0.56);
-  left:50%;transform:translateX(-50%);
-  width:5px;height:calc(var(--bulb-size) * 0.48);background:var(--string-color);border-radius:2px;z-index:6;
+  content: none !important;
+  display: none !important;
 }
 
 /* glow/art */
@@ -113,8 +111,10 @@ svg.garland{position:relative; width:92%; height:100%; pointer-events:none; z-in
   transition:opacity .18s ease, transform .18s ease;
 }
 .bulb .art{ width:86%; height:86%; transform-origin:center; display:block; z-index:7; transition:transform .18s ease }
-.bulb .cap{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:40%;height:12%;background:linear-gradient(180deg,#fff,#ddd);border-radius:4px;z-index:8}
+/* ocultar .cap visual (barra inferior) si existe en DOM */
+.bulb .cap{ display:none !important; }
 
+/* hover / reveal */
 .bulb:hover{transform:translateY(-8px) scale(1.02)}
 .bulb.revealed{opacity:1;pointer-events:none;transform:scale(1.06)}
 .bulb.revealed .glow{opacity:0.6}
@@ -216,11 +216,10 @@ svg.garland{position:relative; width:92%; height:100%; pointer-events:none; z-in
     font-size:15px;
     min-width:120px;
   }
-  .bulb::before{ width:4px; }
+  /* doble seguridad: asegurar que no aparezca el palito en móviles */
+  .bulb::before{ display:none !important; content:none !important; }
   .modal-card .modal-bonus{ font-size:20px; }
 }
-
-/* Very small screens: reduce trees/animation and touch improvements */
 @media (max-width:400px){
   :root{--bulb-size:50px}
   .svg-wrapper{height:220px}
