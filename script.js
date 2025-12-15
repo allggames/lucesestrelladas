@@ -74,18 +74,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Bulb SVG content: NO incluye rect blanco ni elementos laterales.
-  function bulbSVG(color){
-  return `
-    <svg class="inner" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-      <!-- hang-top: rect redondeado más visible -->
-      <rect x="22" y="0" width="20" height="10" rx="4" ry="4" fill="#111" stroke="#fff" stroke-width="1.6" />
-      <!-- detalle superior -->
-      <path d="M32 12 C34 12 36 14 36 16" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round"/>
-      <!-- cuerpo de la bombilla -->
-      <circle cx="32" cy="38" r="18" fill="${color}" stroke="#111" stroke-width="3" />
-      <path d="M45 29 C42 24 36 22 32 25" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2" stroke-linecap="round"/>
-    </svg>
-  `;
+function bulbSVG(color){
+      return `
+        <svg class="inner" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+          <path d="M32 10 C34 10 36 12 36 14" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="32" cy="38" r="18" fill="${color}" stroke="#111" stroke-width="3" />
+          <path d="M45 29 C42 24 36 22 32 25" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      `;
 }
 
     function weightedPick(bonuses) {
